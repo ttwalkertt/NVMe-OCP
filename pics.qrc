@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/new/mainimages">
+        <file>hdd-green.png</file>
+    </qresource>
+</RCC>
