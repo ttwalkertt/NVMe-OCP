@@ -22,7 +22,8 @@ public slots:
     void finish();
 
 signals:
-    void resultReady(const QString &result);
+    //void resultReady(const QString &result);
+    void resultReady(const QMap<int, QMap<int,int>> result);
     void finished();
     void error(QString err);
 
@@ -32,7 +33,11 @@ private:
     void process_setup(QString * line);
     void process_complete(QString * line);
     QString * line_common(QString * line);
+    int get_value(QStringList fields, QString selector);
     QStringList fields;
+    QFile * logfile;
+    QTextStream  logstream;
+    //int queues[24][48];
     QMap<int,QMap<int,int>> queues;
 
 };

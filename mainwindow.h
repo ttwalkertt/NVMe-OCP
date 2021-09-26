@@ -35,7 +35,8 @@ private slots:
     void on_action_Init_triggered();
     void on_action_Start_triggered();
     void on_actionS_top_triggered();
-    void handleResults(const QString &);
+   // void handleResults(const QString &);
+    void handleResults(const QMap<int, QMap<int,int>> result);
     void errorString(QString err);
 signals:
     void operate(const QString &);
@@ -63,7 +64,6 @@ private:
     std::vector<QCheckBox*> cpu_boxes;
     QPlainTextEdit* mainTextWindow;
     int setup_CPU_selector();
-    int run_queues();
     QStringList toStringList(const QByteArray list);
     int timer;
     std::vector<int> active_cpus;

@@ -14,8 +14,11 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    workerThread->quit();
-    workerThread->wait(1);
+//    if (workerThread->isRunning()  )
+//    {
+//        workerThread->quit();
+//        workerThread->wait(1);
+//    }
     delete ui;
 }
 
@@ -82,7 +85,7 @@ int MainWindow::setup_CPU_selector()
 
 void MainWindow::setup_display()
 {
-    int num_drives = 6;
+    int num_drives = 4;
     int num_queues_per_drive = 12;
     running = false;
 
@@ -96,6 +99,7 @@ void MainWindow::setup_display()
         thisDisk->name.append(std::to_string(i));
         for (int j = 0; j < num_queues_per_drive; j++) {
             QProgressBar * pBar = new QProgressBar();
+            pBar->setTextVisible(false);
             //pBar->setMaximumWidth(200);
             thisDisk->pBars.insert(thisDisk->pBars.end(),pBar);
         }
@@ -138,7 +142,6 @@ void MainWindow::setup_display()
 void MainWindow::timerEvent(QTimerEvent *event)
 {
     ui->statusbar->showMessage("Timer...",400);
-    run_queues();
 }
 
 void MainWindow::on_action_Init_triggered()
@@ -148,9 +151,35 @@ void MainWindow::on_action_Init_triggered()
     ui->statusbar->showMessage("initializing...");
 }
 
-void MainWindow::handleResults(const QString & result)
+//void MainWindow::handleResults(const QString & result)
+//{
+//    //qInfo() << "result: " << result;
+//    QStringList fields = result.split("|");
+//    int drive = fields[0].split(":")[1].toInt();
+
+//    for (int i = 1; i < fields.size(); ++i)
+//    {
+//        QStringList temp = fields.at(i).split("=");
+//        int q = temp[0].toInt();
+//        int d = temp[1].toInt();
+//    }
+//}
+
+void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
 {
-    qInfo() << "result: " << result;
+    QMapIterator<int, QMap<int,int>> i(result);
+    while (i.hasNext())
+    {
+     i.next();
+     qInfo() << "disk:" << i.key();
+     QMapIterator<int,int> q(i.value());
+     while (q.hasNext())
+     {
+        q.next();
+        //qInfo() << "q:" << q.key() << ":" << q.value();
+        disks[i.key()]->pBars[q.key()]->setValue(q.value());
+     }
+    }
 }
 
 void MainWindow::on_action_Start_triggered()
@@ -204,27 +233,4 @@ void MainWindow::on_actionS_top_triggered()
     ui->statusbar->showMessage("Thread stopped",1000);
 }
 
-int MainWindow::run_queues()
-{
-    int status = 0;
-    qInfo() << "run queue";
-    return status;
-    QProcess process_system;
-    QStringList linuxcpuname = {"bash", "-c","cat /sys/kernel/debug/tracing/trace" };
-    process_system.start("sudo", linuxcpuname);
-    process_system.waitForFinished(3000);
-    QByteArray stdout = process_system.readAllStandardOutput();
-    qInfo() << "stdout size " << stdout.size();
-    QByteArray stderr = process_system.readAllStandardError();
-    qInfo() << "stderr size " << stderr.size();
-    QString linuxOutput = QString(stdout);
-    qInfo() << "exit status: " << process_system.exitStatus();
-    //qInfo() << stdout;
-    //qInfo() << stderr;
-    ui->plainTextEdit->appendPlainText(linuxOutput);
-    QStringList events = linuxOutput.split("\n");
-    qInfo() << events.size() << " events" ;
-    events = events.filter(QRegularExpression("^[^#]"));
-    //qInfo() << "filtered events\n" << events;
-    return status;
-}
+

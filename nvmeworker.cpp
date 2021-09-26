@@ -1,5 +1,7 @@
 #include "nvmeworker.h"
 
+bool debug = false;
+
 nvmeworker::nvmeworker(QObject *parent) : QObject(parent)
 {
 
@@ -9,6 +11,11 @@ void nvmeworker::doWork()
 {
     QString result;
     QString line;
+    logfile = new QFile("log.txt");
+    if (logfile->open(QFile::WriteOnly | QFile::Truncate))
+    {
+        logstream.setDevice(logfile);
+    }
     line.reserve(255);
     result = "a result";
     int ctr = 0;
@@ -28,17 +35,46 @@ void nvmeworker::doWork()
         while (!done)
         {
             bool yn = trace.readLineInto(&line, 255);
-            qInfo() << "thread loop " << ctr << " readlininto: " << yn;
+            //qInfo() << "thread loop " << ctr << " readlininto: " << yn;
             //qInfo() << line;
-            /* ... here is the expensive or blocking operation ... */
+            //if (debug) logstream << line << "\n" ;
+            if (debug) logstream.flush();
             if (!line.startsWith("#"))
             {
                 if (line.contains("nvme_setup_cmd")) process_setup(&line);
                 else if (line.contains("nvme_complete_rq")) process_complete(&line);
             }
-            emit resultReady(result);
+
             ctr++;
-            if (ctr > 50) break;
+            if ((ctr % 20) == 0)
+            {
+                QString qr;
+                QStringList outstrs;
+                if (debug) logstream << "==============================================================";
+                if (debug) logstream << ctr;
+//                QMapIterator<int, QMap<int,int>> i(queues);
+//                while (i.hasNext())
+//                {
+//                 i.next();
+//                 if (debug) logstream << "drive: " << i.key() << " ";
+//                 outstrs.append( QString("d:%1").arg(i.key()));
+//                 QMapIterator<int,int> q(i.value());
+//                 while (q.hasNext())
+//                 {
+//                    q.next();
+//                    qr=QString("%1=%2").arg(q.key()).arg(q.value());
+//                    logstream << qr << Qt::endl;
+//                    outstrs.append(qr);
+//                    if (debug) logstream << q.key() << ":" << q.value() << " " ;
+//                 }
+//                 if (debug) logstream << Qt::endl;
+                 emit resultReady(queues);
+
+                 //emit resultReady(outstrs.join("|"));
+                 logstream << outstrs.join("|") << Qt::endl;
+//                }
+                logstream.flush();
+            }
         }
     }
     stat = stop_tracing();
@@ -51,14 +87,23 @@ QString * nvmeworker::line_common(QString * line)
 }
 
 
+int nvmeworker::get_value(QStringList fields, QString selector)
+{
+    QStringList results = fields.filter(selector);
+    if (debug) logstream << "get_value results: " << results[0] << Qt::endl;
+    return results[0].split("=")[1].toInt();
+}
+
 void nvmeworker::process_setup(QString * line)
 {
     fields = line->split(":");
     int diskNo = fields[2].simplified().replace("[^0-9]", "").toInt();
     fields = line->replace(":",",").split(",");
-    int qid = fields.filter("qid")[0].split("=")[1].toInt();
-    int cid = fields.filter("cmdid")[0].split("=")[1].toInt();
-    qInfo() << "setup" << diskNo << qid << cid;
+    int qid = get_value(fields,"qid");
+    int cid = get_value(fields,"cmdid");
+    queues[diskNo][qid] = queues[diskNo][qid] + 1;
+    //qInfo() << "setup " << diskNo << " " << qid << cid << queues[diskNo][qid];
+    if (debug) logstream << "setup    disk:" << diskNo << " q:" << qid << " c:" << cid << " " << queues[diskNo][qid] << " " << *line <<"\n";
 }
 
 void nvmeworker::process_complete(QString * line)
@@ -66,9 +111,11 @@ void nvmeworker::process_complete(QString * line)
     fields = line->split(":");
     int diskNo = fields[2].simplified().replace("[^0-9]", "").toInt();
     fields = line->replace(":",",").split(",");
-    int qid = fields.filter("qid")[0].split("=")[1].toInt();
-    int cid = fields.filter("cmdid")[0].split("=")[1].toInt();
-    qInfo() << "complete" << diskNo << qid << cid;
+    int qid = get_value(fields,"qid");
+    int cid = get_value(fields,"cmdid");
+    queues[diskNo][qid] = queues[diskNo][qid] - 1;
+    if (queues[diskNo][qid] < 0) queues[diskNo][qid] = 0;
+    if (debug) logstream << "complete disk:" << diskNo << " q:" << qid << " c:" << cid << " " << queues[diskNo][qid] << " " << *line << "\n";
 }
 
 
