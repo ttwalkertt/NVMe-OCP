@@ -35,24 +35,27 @@ private slots:
     void on_action_Init_triggered();
     void on_action_Start_triggered();
     void on_actionS_top_triggered();
-   // void handleResults(const QString &);
     void handleResults(const QMap<int, QMap<int,int>> result);
+    void handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,int> bw_map);
     void errorString(QString err);
+
 signals:
     void operate(const QString &);
     void finish_thread();
 
 protected:
     void timerEvent(QTimerEvent *event) override;
+
 private:
     Ui::MainWindow *ui;
-    void setup_display();
+    int num_disks = 12;
+    int num_cpus = 0;
     struct HDD {
         int ndx;
         int num_queues;
         int bw;
         int iops;
-        std::string name;
+        QString name;
         std::vector<QProgressBar*> pBars;
         QHBoxLayout *hddLayout;
         QVBoxLayout *statsLayout;
@@ -62,13 +65,22 @@ private:
     };
     std::vector<HDD*> disks;
     std::vector<QCheckBox*> cpu_boxes;
-    QPlainTextEdit* mainTextWindow;
-    int setup_CPU_selector();
-    QStringList toStringList(const QByteArray list);
-    int timer;
     std::vector<int> active_cpus;
-    QThread *workerThread;
+    QStringList disks_present;
+    QPlainTextEdit* mainTextWindow;
     bool running;
+    int timer;
+//thread for capturing trace output and sending it to the main thread
+    QThread *workerThread;
+// thread to run fio
+    QThread * fioThread;
+
+// class methods
+    void setup_display();
+    QStringList find_disks();
+    QStringList toStringList(const QByteArray list);
+    int setup_CPU_selector();
+    void start_fio();
 
 };
 #endif // MAINWINDOW_H
