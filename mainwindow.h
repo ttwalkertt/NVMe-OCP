@@ -39,6 +39,12 @@ private slots:
     void handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,int> bw_map);
     void errorString(QString err);
 
+    void on_SetWork_clicked();
+    void on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus);
+    void on_fio_stdout();
+
+    void on_StopWork_clicked();
+
 signals:
     void operate(const QString &);
     void finish_thread();
@@ -51,6 +57,7 @@ private:
     int num_disks = 12;
     int num_cpus = 0;
     struct HDD {
+        bool present;
         int ndx;
         int num_queues;
         int bw;
@@ -70,10 +77,12 @@ private:
     QPlainTextEdit* mainTextWindow;
     bool running;
     int timer;
+    bool thread_needs_killed = false;
+    bool fio_need_killing = false;
 //thread for capturing trace output and sending it to the main thread
     QThread *workerThread;
 // thread to run fio
-    QThread * fioThread;
+    QProcess *fioProcess;
 
 // class methods
     void setup_display();
@@ -81,6 +90,7 @@ private:
     QStringList toStringList(const QByteArray list);
     int setup_CPU_selector();
     void start_fio();
+    void start_system();
 
 };
 #endif // MAINWINDOW_H

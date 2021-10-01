@@ -11,14 +11,21 @@ nvmeworker::nvmeworker(QObject *parent) : QObject(parent)
 nvmeworker::~nvmeworker()
 {
      killTimer(iops_timer);
-     killTimer(iops_timer);
+     killTimer(queue_timer);
 }
 
 void nvmeworker::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == queue_timer)
     {
+        if (!active)
+        {
+            queues.clear();
+            qInfo() << "cleared queues counter";
+        }
         emit resultReady(queues);
+        if (!active) queues.clear();
+        active = false;
         return;
     }
 
@@ -98,6 +105,7 @@ int nvmeworker::get_value(QStringList fields, QString selector)
 
 void nvmeworker::process_setup(QString * line)
 {
+    active = true;
     fields = line->split(":");
     int diskNo = fields[2].simplified().replace("[^0-9]", "").toInt();
     fields = line->replace(":",",").split(",");
@@ -107,7 +115,7 @@ void nvmeworker::process_setup(QString * line)
     io_sectors[diskNo] = io_sectors[diskNo] + len;
     //qInfo() << "len:" << len;
     queues[diskNo][qid] = queues[diskNo][qid] + 1;
-    if (debug) logstream << "setup    disk:" << diskNo << " q:" << qid << " c:" << cid << " " << queues[diskNo][qid] << " " << *line <<"\n";
+    if (debug) logstream << "setup    disk:" << diskNo << " q:" << qid << " cmd:" << cid << " " << queues[diskNo][qid] << " " << *line <<"\n";
 }
 
 void nvmeworker::process_complete(QString * line)
@@ -120,7 +128,7 @@ void nvmeworker::process_complete(QString * line)
     queues[diskNo][qid] = queues[diskNo][qid] - 1;
     io_counts[diskNo] += 1;
     if (queues[diskNo][qid] < 0) queues[diskNo][qid] = 0;
-    if (debug) logstream << "complete disk:" << diskNo << " q:" << qid << " c:" << cid << " " << queues[diskNo][qid] << " " << *line << "\n";
+    if (debug) logstream << "complete disk:" << diskNo << " q:" << qid << " cmd:" << cid << " " << queues[diskNo][qid] << " " << *line << "\n";
 }
 
 
@@ -146,7 +154,7 @@ int nvmeworker::start_tracing()
     qInfo() << process_system.exitStatus();
     qInfo() << "worker: " << stdout;
     qInfo() << "worker: " << stderr;
-    QThread::sleep(2);
+    QThread::sleep(1);
     return stat;
 }
 

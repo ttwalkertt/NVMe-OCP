@@ -10,11 +10,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ui->action_Start->setEnabled(false);
     ui->actionS_top->setEnabled(false);
+    ui->SetWork->setEnabled(false);
+    setup_display();
+    start_system();
+
 }
 
 MainWindow::~MainWindow()
 {
-    if (workerThread->isRunning()  )
+    on_StopWork_clicked();
+    if (thread_needs_killed)
     {
         workerThread->quit();
         ui->statusbar->showMessage("shutting down...");
@@ -76,7 +81,7 @@ int MainWindow::setup_CPU_selector()
                 QCheckBox * cpu_chx = new QCheckBox();
                 cpu_chx->setCheckState(Qt::Checked);
                 cpu_boxes.insert(cpu_boxes.end(),cpu_chx);
-                ui->cpu_formLayout->addRow(*constIterator,cpu_boxes[num_cpus]);
+                ui->CPUformLayout->addRow(*constIterator,cpu_boxes[num_cpus]);
                 num_cpus++;
             }
             qInfo() << "num cpus:" << num_cpus;
@@ -112,6 +117,11 @@ QStringList MainWindow::find_disks()
 
 void MainWindow::setup_display()
 {
+    //fioProcess = new QProcess();
+    //connect(fioProcess,SIGNAL(finished(int exitCode, QProcess::ExitStatus exitStatus)),this,SLOT(on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus)));
+    //connect(fioProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(on_fio_exit(int , QProcess::ExitStatus )));
+    //connect(fioProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(on_fio_stdout()));
+
     disks_present = find_disks();
     running = false;
     setup_CPU_selector();
@@ -120,9 +130,15 @@ void MainWindow::setup_display()
         qInfo() << "initializing disk " << i;
         HDD * thisDisk = new HDD();
         if (i < disks_present.size())
+        {
             thisDisk->name = disks_present[i].split("/")[2];
+            thisDisk->present = true;
+        }
         else
+        {
             thisDisk->name = QString("not present");
+            thisDisk->present = false;
+        }
         thisDisk->ndx = i;
         thisDisk->num_queues = num_cpus + 1;
         for (int j = 0; j < thisDisk->num_queues; j++) {
@@ -194,6 +210,7 @@ void MainWindow::setup_display()
     }
     ui->plainTextEdit->setStyleSheet("QPlainTextEdit {background-color: black; color: red;}");
     ui->action_Start->setEnabled(false);
+
     ui->plainTextEdit->appendPlainText("Initialized");
 }
 
@@ -206,6 +223,7 @@ void MainWindow::on_action_Init_triggered()
 {
     setup_display();
     ui->action_Start->setEnabled(true);
+    ui->SetWork->setEnabled(true);
     ui->statusbar->showMessage("initializing...");
 }
 
@@ -253,8 +271,14 @@ void MainWindow::start_fio()
 
 void MainWindow::on_action_Start_triggered()
 {
+
+}
+
+void MainWindow::start_system()
+{
     if (running) return;
     running = true;
+    thread_needs_killed = true;
     qInfo() << "menu start";
     ui->statusbar->showMessage("Starting...",2500);
     //timer = startTimer(1000);
@@ -285,8 +309,7 @@ void MainWindow::on_action_Start_triggered()
     connect(worker, &nvmeworker::update_iops, this, &MainWindow::handleUpdateIOPS);
     workerThread->start();
     ui->statusbar->showMessage("Thread started",1000);
-    ui->action_Start->setEnabled(false);
-    ui->actionS_top->setEnabled(true);
+    ui->SetWork->setEnabled(true);
 }
 
 void MainWindow::on_actionS_top_triggered()
@@ -302,4 +325,84 @@ void MainWindow::on_actionS_top_triggered()
     ui->statusbar->showMessage("Thread stopped",1000);
 }
 
+void MainWindow::on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    qInfo() << "recieved fio exit signal" << exitCode << exitStatus;
+    ui->statusbar->showMessage("fio stopped");
+    delete fioProcess;
+}
+
+void MainWindow::on_fio_stdout()
+{
+    qInfo() << "fio:" << fioProcess->readAllStandardOutput();
+    qInfo() << "fio:" << fioProcess->readAllStandardError();
+}
+
+void MainWindow::on_SetWork_clicked()
+{
+    QStringList fioParameters;
+    //fioParameters.append("-c");
+    //fioParameters.append("fio");
+    fioParameters.append("--name=global");
+    fioParameters.append("--direct=1");
+    fioParameters.append("--ioengine=libaio");
+
+    QStringList fioJobParameters;
+    if (ui->radioButton4K->isChecked()) fioJobParameters.append("--bs=4k");
+    else if (ui->radioButton64K->isChecked()) fioJobParameters.append("--bs=64k");
+    else if (ui->radioButton256K->isChecked()) fioJobParameters.append("--bs=256K");
+    if (ui->radioButtonRandom->isChecked())
+    {
+        if (ui->radioButtonRWMixed->isChecked()) fioJobParameters.append("--rw=randrw");
+        else if (ui->radioButtonRead->isChecked()) fioJobParameters.append("--rw=randread");
+        else if (ui->radioButtonWrite->isChecked()) fioJobParameters.append("--rw=randwrite");
+        else qInfo() << "no valid workload";
+    } else
+    {
+        if (ui->radioButtonRWMixed->isChecked()) fioJobParameters.append("--rw=rw");
+        else if (ui->radioButtonRead->isChecked()) fioJobParameters.append("--rw=read");
+        else if (ui->radioButtonWrite->isChecked()) fioJobParameters.append("--rw=write");
+        else qInfo() << "no valid workload";
+    }
+    QString qd = QString("--iodepth=%1").arg(ui->spinBoxQD->value());
+    fioJobParameters.append(qd);
+
+    for (HDD *h : disks)
+    {
+        if (h->present)
+        {
+            fioParameters.append(QString("--name=%1").arg(h->ndx));
+            fioParameters.append(QString("--filename=/dev/%1").arg(h->name));
+            fioParameters.append(fioJobParameters);
+        }
+    }
+    ui->statusbar->showMessage("starting FIO workload");
+    qInfo() << fioParameters;
+    QString program = "fio";
+    ui->SetWork->setEnabled(false);
+    ui->StopWork->setEnabled(true);
+    fioProcess = new QProcess();
+    connect(fioProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(on_fio_exit(int, QProcess::ExitStatus)));
+    connect(fioProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(on_fio_stdout()));
+    fioProcess->start(program,fioParameters);
+    fio_need_killing = true;
+}
+
+
+void MainWindow::on_StopWork_clicked()
+{
+    qInfo() << "sending kill to fio";
+    if (fio_need_killing)
+    {
+        fioProcess->terminate();
+        QStringList linuxnvmelist = {"-c","pkill" , "fio" };
+        QProcess process_system;
+        process_system.start("bash", linuxnvmelist);
+        process_system.waitForFinished(30000);
+        qInfo() << "kill fio " << process_system.exitStatus();
+        fio_need_killing = false;
+    }
+    ui->SetWork->setEnabled(true);
+    ui->StopWork->setEnabled(false);
+}
 

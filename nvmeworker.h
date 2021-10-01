@@ -48,6 +48,7 @@ private:
     int queue_timer;
     qint64 last_time = 0;
     int sect_size_KB = 4;
+    bool active = true;
 
 };
 
