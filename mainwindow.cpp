@@ -117,10 +117,6 @@ QStringList MainWindow::find_disks()
 
 void MainWindow::setup_display()
 {
-    //fioProcess = new QProcess();
-    //connect(fioProcess,SIGNAL(finished(int exitCode, QProcess::ExitStatus exitStatus)),this,SLOT(on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus)));
-    //connect(fioProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(on_fio_exit(int , QProcess::ExitStatus )));
-    //connect(fioProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(on_fio_stdout()));
 
     disks_present = find_disks();
     running = false;
@@ -187,7 +183,19 @@ void MainWindow::setup_display()
     qInfo() << disks;
 
     int c = 0;
+    ui->plainTextEdit->appendPlainText("scanning for NVMe disks");
     for (HDD *h : disks) {
+        h->selector_checkbox = new QCheckBox();
+        if (h->present)
+        {
+            h->selector_checkbox->setCheckState(Qt::Checked);
+            ui->plainTextEdit->appendPlainText(h->name);
+        } else
+        {
+            h->selector_checkbox->setCheckState(Qt::Unchecked);
+            h->selector_checkbox->setEnabled(false);
+        }
+        ui->CPUformLayout_Target->addRow(h->name,h->selector_checkbox);
         if (c < 3)
         {
             ui->drive_verticalLayout->addWidget(h->disk_frame);
@@ -210,6 +218,7 @@ void MainWindow::setup_display()
     }
     ui->plainTextEdit->setStyleSheet("QPlainTextEdit {background-color: black; color: red;}");
     ui->action_Start->setEnabled(false);
+    ui->StopWork->setEnabled(false);
 
     ui->plainTextEdit->appendPlainText("Initialized");
 }
@@ -229,6 +238,16 @@ void MainWindow::on_action_Init_triggered()
 
 void MainWindow::handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,int> bw_map )
 {
+    if (!update_ok)
+    {
+        qInfo() << "received IOPS update with display disabled";
+        for(auto e : disks)
+        {
+          e->bw_label->setNum(0);
+          e->iops_label->setNum(0);
+        }
+        return;
+    }
     qInfo() << "main thread received IOPs/ BW data" << iops_map << bw_map;
 
     QMapIterator<int,int> i(iops_map);
@@ -247,11 +266,22 @@ void MainWindow::handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,i
 
 void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
 {
+    if (!update_ok)
+    {
+        qInfo() << "received QD update with display disabled";
+        for(auto e : disks)
+        {
+          for (auto p : e->pBars)
+          {
+              p->setValue(0);
+          }
+        }
+        return;
+    }
     QMapIterator<int, QMap<int,int>> i(result);
     while (i.hasNext())
     {
      i.next();
-     //qInfo() << "disk:" << i.key();
      QMapIterator<int,int> q(i.value());
      while (q.hasNext())
      {
@@ -338,8 +368,23 @@ void MainWindow::on_fio_stdout()
     qInfo() << "fio:" << fioProcess->readAllStandardError();
 }
 
+QStringList MainWindow::get_fio_targets()
+{
+    QStringList targets;
+    for (auto d : disks)
+    {
+        if (d->selector_checkbox->checkState() == Qt::Checked)
+        {
+            targets.append(d->name);
+            ui->plainTextEdit->appendPlainText(QString("added %1").arg(d->name));
+        }
+    }
+    return targets;
+}
+
 void MainWindow::on_SetWork_clicked()
 {
+    QStringList targets = get_fio_targets();
     QStringList fioParameters;
     //fioParameters.append("-c");
     //fioParameters.append("fio");
@@ -386,6 +431,8 @@ void MainWindow::on_SetWork_clicked()
     connect(fioProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(on_fio_stdout()));
     fioProcess->start(program,fioParameters);
     fio_need_killing = true;
+    update_ok = true;
+    ui->SetWork->setEnabled(false);
 }
 
 
@@ -404,5 +451,6 @@ void MainWindow::on_StopWork_clicked()
     }
     ui->SetWork->setEnabled(true);
     ui->StopWork->setEnabled(false);
+    update_ok = false;
 }
 

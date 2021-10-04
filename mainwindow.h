@@ -69,6 +69,7 @@ private:
         QLabel *iops_label;
         QLabel *bw_label;
         QFrame *disk_frame;
+        QCheckBox * selector_checkbox;
     };
     std::vector<HDD*> disks;
     std::vector<QCheckBox*> cpu_boxes;
@@ -76,6 +77,7 @@ private:
     QStringList disks_present;
     QPlainTextEdit* mainTextWindow;
     bool running;
+    bool update_ok = false;
     int timer;
     bool thread_needs_killed = false;
     bool fio_need_killing = false;
@@ -91,6 +93,7 @@ private:
     int setup_CPU_selector();
     void start_fio();
     void start_system();
+    QStringList get_fio_targets();
 
 };
 #endif // MAINWINDOW_H

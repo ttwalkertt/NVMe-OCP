@@ -95,7 +95,7 @@ int nvmeworker::get_value(QStringList fields, QString selector)
     QStringList results = fields.filter(selector);
     if (results.size() == 0)
     {
-        qInfo() << "selector not found";
+        qInfo() << "selector not found:" << selector;
         return 0;
     }
     if (debug) logstream << "get_value " << selector << results[0] << Qt::endl;

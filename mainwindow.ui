@@ -257,9 +257,9 @@
     <property name="geometry">
      <rect>
       <x>1280</x>
-      <y>360</y>
+      <y>370</y>
       <width>341</width>
-      <height>301</height>
+      <height>291</height>
      </rect>
     </property>
     <property name="font">
@@ -291,6 +291,11 @@
       <width>101</width>
       <height>321</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
     </property>
     <property name="title">
      <string>CPU Selector</string>
@@ -346,10 +351,15 @@
     <property name="geometry">
      <rect>
       <x>1390</x>
-      <y>310</y>
-      <width>121</width>
+      <y>330</y>
+      <width>101</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>Start Workload</string>
@@ -471,10 +481,10 @@
    <widget class="QSpinBox" name="spinBoxQD">
     <property name="geometry">
      <rect>
-      <x>1520</x>
-      <y>250</y>
+      <x>1490</x>
+      <y>300</y>
       <width>71</width>
-      <height>26</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="minimum">
@@ -493,28 +503,64 @@
    <widget class="QLabel" name="label_13">
     <property name="geometry">
      <rect>
-      <x>1520</x>
-      <y>230</y>
+      <x>1380</x>
+      <y>300</y>
       <width>101</width>
       <height>17</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
     <property name="text">
-     <string>IOs in flight</string>
+     <string>IOs in flight:</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QPushButton" name="StopWork">
     <property name="geometry">
      <rect>
-      <x>1530</x>
-      <y>310</y>
-      <width>121</width>
+      <x>1500</x>
+      <y>330</y>
+      <width>101</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>Stop Workload</string>
     </property>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_5">
+    <property name="geometry">
+     <rect>
+      <x>1530</x>
+      <y>30</y>
+      <width>151</width>
+      <height>261</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="title">
+     <string>Target Selector</string>
+    </property>
+    <layout class="QFormLayout" name="CPUformLayout_Target">
+     <property name="leftMargin">
+      <number>12</number>
+     </property>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
