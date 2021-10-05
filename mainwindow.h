@@ -15,6 +15,7 @@
 #include <QCheckBox>
 #include <QRegularExpression>
 #include <QThread>
+#include <QMessageBox>
 
 #include "nvmeworker.h"
 
@@ -91,7 +92,7 @@ private:
     QStringList find_disks();
     QStringList toStringList(const QByteArray list);
     int setup_CPU_selector();
-    void start_fio();
+    int start_fio();
     void start_system();
     QStringList get_fio_targets();
 

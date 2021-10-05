@@ -219,7 +219,6 @@ void MainWindow::setup_display()
     ui->plainTextEdit->setStyleSheet("QPlainTextEdit {background-color: black; color: red;}");
     ui->action_Start->setEnabled(false);
     ui->StopWork->setEnabled(false);
-
     ui->plainTextEdit->appendPlainText("Initialized");
 }
 
@@ -240,7 +239,7 @@ void MainWindow::handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,i
 {
     if (!update_ok)
     {
-        qInfo() << "received IOPS update with display disabled";
+        qInfo() << "received IOPS update with display update disabled";
         for(auto e : disks)
         {
           e->bw_label->setNum(0);
@@ -268,7 +267,7 @@ void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
 {
     if (!update_ok)
     {
-        qInfo() << "received QD update with display disabled";
+        qInfo() << "received QD update with display update disabled";
         for(auto e : disks)
         {
           for (auto p : e->pBars)
@@ -292,11 +291,6 @@ void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
         }
      }
     }
-}
-
-void MainWindow::start_fio()
-{
-
 }
 
 void MainWindow::on_action_Start_triggered()
@@ -350,8 +344,6 @@ void MainWindow::on_actionS_top_triggered()
     ui->actionS_top->setEnabled(false);
     qInfo() << "menu stop";
     emit finish_thread();
-   // workerThread.quit();
-   // workerThread.wait();
     ui->statusbar->showMessage("Thread stopped",1000);
 }
 
@@ -359,7 +351,8 @@ void MainWindow::on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus)
 {
     qInfo() << "recieved fio exit signal" << exitCode << exitStatus;
     ui->statusbar->showMessage("fio stopped");
-    delete fioProcess;
+    ui->plainTextEdit->appendPlainText("fio stopped");
+    //delete fioProcess;
 }
 
 void MainWindow::on_fio_stdout()
@@ -379,15 +372,15 @@ QStringList MainWindow::get_fio_targets()
             ui->plainTextEdit->appendPlainText(QString("added %1").arg(d->name));
         }
     }
+    qInfo() << "fio targets:" << targets;
     return targets;
 }
 
-void MainWindow::on_SetWork_clicked()
+int MainWindow::start_fio()
 {
+    int status = 0;
     QStringList targets = get_fio_targets();
     QStringList fioParameters;
-    //fioParameters.append("-c");
-    //fioParameters.append("fio");
     fioParameters.append("--name=global");
     fioParameters.append("--direct=1");
     fioParameters.append("--ioengine=libaio");
@@ -411,15 +404,23 @@ void MainWindow::on_SetWork_clicked()
     }
     QString qd = QString("--iodepth=%1").arg(ui->spinBoxQD->value());
     fioJobParameters.append(qd);
-
+    int disk_test_cnt = 0;
     for (HDD *h : disks)
     {
-        if (h->present)
+        if ((h->present) && (h->selector_checkbox->isChecked() == true))
         {
             fioParameters.append(QString("--name=%1").arg(h->ndx));
             fioParameters.append(QString("--filename=/dev/%1").arg(h->name));
             fioParameters.append(fioJobParameters);
+            disk_test_cnt++;
         }
+    }
+    if (!disk_test_cnt)
+    {
+        QMessageBox msgBox;
+        msgBox.setText("No disks are available or selected to run!");
+        msgBox.exec();
+        return -1;
     }
     ui->statusbar->showMessage("starting FIO workload");
     qInfo() << fioParameters;
@@ -430,7 +431,20 @@ void MainWindow::on_SetWork_clicked()
     connect(fioProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(on_fio_exit(int, QProcess::ExitStatus)));
     connect(fioProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(on_fio_stdout()));
     fioProcess->start(program,fioParameters);
+    int timer = 0;
+    QThread::msleep(250);
+    qInfo() << "waiting for fio to start..." << fioProcess->state();
     fio_need_killing = true;
+    return status;
+}
+
+void MainWindow::on_SetWork_clicked()
+{
+    if (start_fio())
+    {
+        ui->plainTextEdit->appendPlainText("unable to start fio, please check things out and try again");
+        return;
+    }
     update_ok = true;
     ui->SetWork->setEnabled(false);
 }
