@@ -281,6 +281,7 @@ void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
     while (i.hasNext())
     {
      i.next();
+     qInfo() << "QD data" << i.value();
      QMapIterator<int,int> q(i.value());
      while (q.hasNext())
      {
@@ -329,6 +330,7 @@ void MainWindow::start_system()
     connect(worker, SIGNAL(error(QString)), this, SLOT(errorString(QString))); //propagate errors
     connect(worker, SIGNAL(finished()), workerThread, SLOT(quit())); // when worker emits finished it quit()'s thread
     connect(this, SIGNAL(finish_thread()), worker, SLOT(finish()));
+    connect(this, SIGNAL(reset_nvmeworker()), worker, SLOT(reset()));
     connect(worker, &nvmeworker::resultReady, this, &MainWindow::handleResults);
     connect(worker, &nvmeworker::update_iops, this, &MainWindow::handleUpdateIOPS);
     workerThread->start();
@@ -465,6 +467,7 @@ void MainWindow::on_StopWork_clicked()
     }
     ui->SetWork->setEnabled(true);
     ui->StopWork->setEnabled(false);
+    reset_nvmeworker();
     update_ok = false;
 }
 

@@ -24,6 +24,7 @@ public slots:
     void doWork();
     void finish();
     void timerEvent(QTimerEvent *event);
+    void reset();
 
 signals:
 

@@ -129,6 +129,7 @@ void nvmeworker::process_complete(QString * line)
     queues[diskNo][qid] = queues[diskNo][qid] - 1;
     io_counts[diskNo] += 1;
     if (queues[diskNo][qid] < 0) queues[diskNo][qid] = 0;
+    if (queues[diskNo][qid] > 1000) queues[diskNo][qid] = 1;  //this is a shameless hack
     if (debug) logstream << "complete disk:" << diskNo << " q:" << qid << " cmd:" << cid << " " << queues[diskNo][qid] << " " << *line << "\n";
 }
 
@@ -176,4 +177,10 @@ int nvmeworker::stop_tracing()
     qInfo() << "worker stdout: " << stdout;
     qInfo() << "worker stderr: " << stderr;
     return stat;
+}
+
+void nvmeworker::reset()
+{
+    qInfo() << "nvmeworker recieved reset";
+    queues.clear();
 }

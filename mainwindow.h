@@ -49,6 +49,7 @@ private slots:
 signals:
     void operate(const QString &);
     void finish_thread();
+    void reset_nvmeworker();
 
 protected:
     void timerEvent(QTimerEvent *event) override;
