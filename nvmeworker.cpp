@@ -95,7 +95,7 @@ int nvmeworker::get_value(QStringList fields, QString selector)
     QStringList results = fields.filter(selector);
     if (results.size() == 0)
     {
-        qInfo() << "selector not found:" << selector;
+        qInfo() << "selector not found:" << selector << fields;
         return 0;
     }
     if (debug) logstream << "get_value " << selector << results[0] << Qt::endl;
@@ -107,7 +107,8 @@ void nvmeworker::process_setup(QString * line)
 {
     active = true;
     fields = line->split(":");
-    int diskNo = fields[2].simplified().replace("[^0-9]", "").toInt();
+    int diskNo = fields[2].simplified().replace(QRegularExpression("[^0-9]"), "").toInt();
+    //qInfo() << fields[2] << fields[2].simplified().replace(QRegularExpression("[a-z]"), "") << diskNo;
     fields = line->replace(":",",").split(",");
     int qid = get_value(fields,"qid");
     int cid = get_value(fields,"cmdid");
@@ -121,7 +122,7 @@ void nvmeworker::process_setup(QString * line)
 void nvmeworker::process_complete(QString * line)
 {
     fields = line->split(":");
-    int diskNo = fields[2].simplified().replace("[^0-9]", "").toInt();
+    int diskNo = fields[2].simplified().replace(QRegularExpression("[^0-9]"), "").toInt();
     fields = line->replace(":",",").split(",");
     int qid = get_value(fields,"qid");
     int cid = get_value(fields,"cmdid");

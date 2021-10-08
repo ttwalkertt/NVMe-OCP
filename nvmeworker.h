@@ -10,6 +10,7 @@
 #include <QMap>
 #include <QTimer>
 #include <QDateTime>
+#include <QRegularExpression>
 
 class nvmeworker : public QObject
 {
