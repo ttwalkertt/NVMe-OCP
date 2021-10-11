@@ -76,12 +76,14 @@ int MainWindow::setup_CPU_selector()
             qInfo() << cpus;
             QStringList::const_iterator constIterator;
             num_cpus = 0;
+            formlayout_CPU =  new QFormLayout();
+            ui->groupBox_CPU->setLayout(formlayout_CPU);
             for (constIterator = cpus.constBegin(); constIterator != cpus.constEnd(); ++constIterator)
             {
                 QCheckBox * cpu_chx = new QCheckBox();
                 cpu_chx->setCheckState(Qt::Checked);
                 cpu_boxes.insert(cpu_boxes.end(),cpu_chx);
-                ui->CPUformLayout->addRow(*constIterator,cpu_boxes[num_cpus]);
+                formlayout_CPU->addRow(*constIterator,cpu_boxes[num_cpus]);
                 num_cpus++;
             }
             qInfo() << "num cpus:" << num_cpus;
