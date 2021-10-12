@@ -159,9 +159,24 @@ void MainWindow::setup_display()
         icon->setPixmap(*green_disk);
         icons->addWidget(icon);
         icons->addWidget(ndx);
+        thisDisk->selector_checkbox = new QCheckBox();
+        QLabel * cb_label;
+        if (thisDisk->present)
+        {
+            thisDisk->selector_checkbox->setCheckState(Qt::Checked);
+            cb_label = new QLabel("enabled");
+            ui->plainTextEdit->appendPlainText(thisDisk->name);
+        } else
+        {
+            thisDisk->selector_checkbox->setCheckState(Qt::Unchecked);
+            cb_label = new QLabel("<s>enabled</s>");
+            thisDisk->selector_checkbox->setEnabled(false);
+        }
+        QFormLayout *formlayout_TGT_int =  new QFormLayout();
+        //QLabel * cb_label = new QLabel("enabled");
+        formlayout_TGT_int->addRow(cb_label,thisDisk->selector_checkbox);
+        icons->addLayout(formlayout_TGT_int);
         thisDisk->hddLayout->addLayout(icons);
-        //thisDisk->hddLayout->addWidget(ndx);
-        //thisDisk->hddLayout->addWidget(icon);
         QVBoxLayout * queues = new QVBoxLayout();
         thisDisk->hddLayout->addLayout(queues);
         int c = 0;
@@ -180,6 +195,7 @@ void MainWindow::setup_display()
         thisDisk->statsLayout->addWidget(thisDisk->bw_label);
         thisDisk->statsLayout->addWidget(new QLabel("IOPS"));
         thisDisk->statsLayout->addWidget(thisDisk->iops_label);
+        qInfo() << "tracking disk " << thisDisk->name;
         disks.insert(disks.end(),thisDisk);
     }
     qInfo() << disks;
@@ -187,34 +203,35 @@ void MainWindow::setup_display()
     int c = 0;
     ui->plainTextEdit->appendPlainText("scanning for NVMe disks");
     for (HDD *h : disks) {
-        h->selector_checkbox = new QCheckBox();
-        if (h->present)
-        {
-            h->selector_checkbox->setCheckState(Qt::Checked);
-            ui->plainTextEdit->appendPlainText(h->name);
-        } else
-        {
-            h->selector_checkbox->setCheckState(Qt::Unchecked);
-            h->selector_checkbox->setEnabled(false);
-        }
-        ui->CPUformLayout_Target->addRow(h->name,h->selector_checkbox);
+//        h->selector_checkbox = new QCheckBox();
+//        if (h->present)
+//        {
+//            h->selector_checkbox->setCheckState(Qt::Checked);
+//            ui->plainTextEdit->appendPlainText(h->name);
+//        } else
+//        {
+//            h->selector_checkbox->setCheckState(Qt::Unchecked);
+//            h->selector_checkbox->setEnabled(false);
+//        }
+        qInfo() << "adding disk " << h->name << "to layout";
+//        ui->CPUformLayout_Target->addRow(h->name,h->selector_checkbox);
         if (c < 3)
         {
             ui->drive_verticalLayout->addWidget(h->disk_frame);
-            ui->drive_verticalLayout->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout->addLayout(h->hddLayout);
         } else if (c < 6)
         {
             ui->drive_verticalLayout2->addWidget(h->disk_frame);
-            ui->drive_verticalLayout2->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout2->addLayout(h->hddLayout);
         } else if (c < 9)
         {
             ui->drive_verticalLayout3->addWidget(h->disk_frame);
-            ui->drive_verticalLayout3->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout3->addLayout(h->hddLayout);
         }
         else
         {
             ui->drive_verticalLayout4->addWidget(h->disk_frame);
-            ui->drive_verticalLayout4->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout4->addLayout(h->hddLayout);
          }
         c++;
     }

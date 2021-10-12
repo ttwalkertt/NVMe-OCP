@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1165</width>
-    <height>696</height>
+    <width>998</width>
+    <height>706</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -31,23 +31,6 @@
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QGroupBox" name="groupBox_Target">
-          <property name="font">
-           <font>
-            <pointsize>10</pointsize>
-           </font>
-          </property>
-          <property name="title">
-           <string>Target Selector</string>
-          </property>
-          <layout class="QFormLayout" name="CPUformLayout_Target">
-           <property name="leftMargin">
-            <number>12</number>
-           </property>
-          </layout>
-         </widget>
-        </item>
         <item>
          <widget class="QGroupBox" name="groupBox_CPU">
           <property name="font">
@@ -266,7 +249,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1165</width>
+     <width>998</width>
      <height>22</height>
     </rect>
    </property>
