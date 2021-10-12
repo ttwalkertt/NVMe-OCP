@@ -141,6 +141,7 @@ void MainWindow::setup_display()
         thisDisk->num_queues = num_cpus + 1;
         for (int j = 0; j < thisDisk->num_queues; j++) {
             QProgressBar * pBar = new QProgressBar();
+            pBar->setMaximumHeight(10);
             pBar->setTextVisible(false);
             //pBar->setMaximumWidth(200);
             thisDisk->pBars.insert(thisDisk->pBars.end(),pBar);
@@ -179,11 +180,17 @@ void MainWindow::setup_display()
         thisDisk->hddLayout->addLayout(icons);
         QVBoxLayout * queues = new QVBoxLayout();
         thisDisk->hddLayout->addLayout(queues);
+        QLabel *ql = new QLabel("queues");
+        ql->setAlignment(Qt::AlignCenter);
+        queues->addWidget(ql);
+        QFont f( "Arial", 10);
         int c = 0;
         for (QProgressBar* qpb : thisDisk->pBars){
             QHBoxLayout *h = new QHBoxLayout();
             queues->addLayout(h);
-            h->addWidget(new QLabel(QString::number(c)));
+            QLabel * qn = new QLabel(QString::number(c));
+            qn->setFont(f);
+            h->addWidget(qn);
             h->addWidget(qpb);
             c++;
         }
