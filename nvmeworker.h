@@ -11,6 +11,7 @@
 #include <QTimer>
 #include <QDateTime>
 #include <QRegularExpression>
+#include <QMetaType>
 
 class nvmeworker : public QObject
 {
@@ -31,6 +32,7 @@ signals:
     void resultReady(const QMap<int, QMap<int,int>> result);
     void finished();
     void update_iops(const QMap<int,int>, const QMap<int,int>);
+    void update_chassis();
     void error(QString err);
 
 private:
@@ -38,6 +40,7 @@ private:
     int stop_tracing();
     void process_setup(QString * line);
     void process_complete(QString * line);
+    void reduce_queue();
     QString * line_common(QString * line);
     int get_value(QStringList fields, QString selector);
     QStringList fields;
