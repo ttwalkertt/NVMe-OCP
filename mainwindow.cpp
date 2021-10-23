@@ -467,6 +467,7 @@ int MainWindow::start_fio()
     fioProcess = new QProcess();
     connect(fioProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(on_fio_exit(int, QProcess::ExitStatus)));
     connect(fioProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(on_fio_stdout()));
+    connect(fioProcess,SIGNAL(readyReadStandardError()),this,SLOT(on_fio_stdout()));
     fioProcess->start(program,fioParameters);
     QThread::msleep(250);
     qInfo() << "waiting for fio to start..." << fioProcess->state();
@@ -539,7 +540,7 @@ bool MainWindow::setup_chassis_serialport()
 
 void MainWindow::read_chassis_serialport()
 {
-    qInfo() << "read chassis port, port is "  << chassis_port_up;
+    //qInfo() << "read chassis port, port is "  << chassis_port_up;
     int ctr = 0;
     char buffer[512];
     if (chassis_port_up)
