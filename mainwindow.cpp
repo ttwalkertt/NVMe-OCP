@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->SetWork->setEnabled(false);
     qRegisterMetaType<QMap<int,QMap<int,int>>>();
     setup_display();
+    qApp->setStyleSheet("QGroupBox {  border: 5px solid gray;}");
     start_system();
 
 }
@@ -229,20 +230,20 @@ void MainWindow::setup_display()
 //        ui->CPUformLayout_Target->addRow(h->name,h->selector_checkbox);
         if (c < 3)
         {
-            ui->drive_verticalLayout->addWidget(h->disk_frame);
+            //ui->drive_verticalLayout->addWidget(h->disk_frame);
             //ui->drive_verticalLayout->addLayout(h->hddLayout);
         } else if (c < 6)
         {
-            ui->drive_verticalLayout2->addWidget(h->disk_frame);
+            //ui->drive_verticalLayout2->addWidget(h->disk_frame);
             //ui->drive_verticalLayout2->addLayout(h->hddLayout);
         } else if (c < 9)
         {
-            ui->drive_verticalLayout3->addWidget(h->disk_frame);
+            //ui->drive_verticalLayout3->addWidget(h->disk_frame);
             //ui->drive_verticalLayout3->addLayout(h->hddLayout);
         }
         else
         {
-            ui->drive_verticalLayout4->addWidget(h->disk_frame);
+            //ui->drive_verticalLayout4->addWidget(h->disk_frame);
             //ui->drive_verticalLayout4->addLayout(h->hddLayout);
          }
         c++;
