@@ -6,6 +6,7 @@ nvmeworker::nvmeworker(QObject *parent) : QObject(parent)
 {
     iops_timer = startTimer(1500);
     queue_timer = startTimer(500);
+    qInfo() << "timers started";
 }
 
 nvmeworker::~nvmeworker()
@@ -14,21 +15,43 @@ nvmeworker::~nvmeworker()
      killTimer(queue_timer);
 }
 
+void nvmeworker::reduce_queue()
+{
+    QMapIterator<int, QMap<int,int>> disk(queues);
+    while (disk.hasNext())
+    {
+     disk.next();
+     qInfo() << "cleaning queues";
+     QMapIterator<int,int> q(disk.value());
+     while (q.hasNext())
+     {
+        q.next();
+        if (queues[disk.key()][q.key()] > 1)
+        {
+            queues[disk.key()][q.key()]--;
+            qInfo() << "disk:" << disk.key() << "queue:" << q.key() << "decremented to " << queues[disk.key()][q.key()];
+        }
+     }
+    }
+}
+
 void nvmeworker::timerEvent(QTimerEvent *event)
 {
+    qInfo() << "timer fired in NVMeworker";
+    emit update_chassis();
     if (event->timerId() == queue_timer)
     {
+        qInfo() << "nvmeworker QTimerEvent fired for queues" << queues ;
         if (!active)
         {
             queues.clear();
-            qInfo() << "cleared queues counter";
+            qInfo() << "cleared queues counter in NVMe worker";
         }
-        emit resultReady(queues);
-        if (!active) queues.clear();
+        emit resultReady(queues);      
         active = false;
+        reduce_queue();
         return;
     }
-
     qint64 now = QDateTime::currentMSecsSinceEpoch();
     double interval = (now - last_time) /1000.0;
     last_time = now;
@@ -39,7 +62,6 @@ void nvmeworker::timerEvent(QTimerEvent *event)
         iops_results[i.key()] = (int)(i.value() / interval);
         i.value() = 0;
     }
-
     QMap<int,int>bw_results;
     for (i = io_sectors.begin(); i != io_sectors.end(); ++i)
     {
@@ -47,8 +69,7 @@ void nvmeworker::timerEvent(QTimerEvent *event)
         i.value() = 0;
     }
     emit update_iops(iops_results, bw_results);
-
-    qInfo() << "nvmeworker QTimerEvent fired " << iops_results << bw_results;
+    qInfo() << "nvmeworker QTimerEvent fired. iops:" << iops_results << " bw:" << bw_results;
 }
 
 void nvmeworker::doWork()
@@ -76,19 +97,25 @@ void nvmeworker::doWork()
         qInfo() << "opened trace QTextStream";
         while (!done)
         {
-            bool yn = trace.readLineInto(&line, 255);
             QCoreApplication::processEvents();
-            if (!line.startsWith("#"))
+            if (true)
             {
-                if (line.contains("nvme_setup_cmd")) process_setup(&line);
-                else if (line.contains("nvme_complete_rq")) process_complete(&line);
+                bool yn = trace.readLineInto(&line, 255);
+                if (!line.startsWith("#"))
+                {
+                    if (line.contains("nvme_setup_cmd")) process_setup(&line);
+                    else if (line.contains("nvme_complete_rq")) process_complete(&line);
+                }
+            }
+           else
+            {
+                qInfo() << "no trace data";
             }
         }
     }
     stat = stop_tracing();
     queues.clear();
 }
-
 
 int nvmeworker::get_value(QStringList fields, QString selector)
 {
@@ -98,7 +125,7 @@ int nvmeworker::get_value(QStringList fields, QString selector)
         qInfo() << "selector not found:" << selector << fields;
         return 0;
     }
-    if (debug) logstream << "get_value " << selector << results[0] << Qt::endl;
+    if (debug) logstream << "get_value " << selector << results[0] << "\n";
     if (debug) logstream.flush();
     return results[0].split("=")[1].toInt();
 }
@@ -129,9 +156,9 @@ void nvmeworker::process_complete(QString * line)
     queues[diskNo][qid] = queues[diskNo][qid] - 1;
     io_counts[diskNo] += 1;
     if (queues[diskNo][qid] < 0) queues[diskNo][qid] = 0;
+    if (queues[diskNo][qid] > 1000) queues[diskNo][qid] = 1;  //this is a shameless hack
     if (debug) logstream << "complete disk:" << diskNo << " q:" << qid << " cmd:" << cid << " " << queues[diskNo][qid] << " " << *line << "\n";
 }
-
 
 void nvmeworker::finish()
 {
@@ -176,4 +203,10 @@ int nvmeworker::stop_tracing()
     qInfo() << "worker stdout: " << stdout;
     qInfo() << "worker stderr: " << stderr;
     return stat;
+}
+
+void nvmeworker::reset()
+{
+    qInfo() << "nvmeworker recieved reset";
+    queues.clear();
 }

@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->action_Start->setEnabled(false);
     ui->actionS_top->setEnabled(false);
     ui->SetWork->setEnabled(false);
+    qRegisterMetaType<QMap<int,QMap<int,int>>>();
     setup_display();
     start_system();
 
@@ -52,7 +53,7 @@ int MainWindow::setup_CPU_selector()
     int status = 0;
     QProcess process_system;
     QString my_formatted_string = QString("Running on %1  %2").arg(QSysInfo::currentCpuArchitecture(),QSysInfo::kernelVersion());
-    ui->plainTextEdit->appendPlainText(my_formatted_string);
+    ui->statusbar->showMessage(my_formatted_string);
     if(QSysInfo::kernelType() == "linux")
         {
             QStringList linuxcpuname = {"-c"," cat /proc/cpuinfo | grep 'model name' | uniq" };
@@ -66,22 +67,24 @@ int MainWindow::setup_CPU_selector()
             qInfo() << process_system.exitStatus();
             qInfo() << stdout;
             qInfo() << stderr;
-            ui->plainTextEdit->appendPlainText(linuxOutput);
+            qInfo() << linuxOutput;
 
-            linuxcpuname = {"-c"," cat /proc/cpuinfo | grep 'processor' " };
-            process_system.start("bash", linuxcpuname);
+            QStringList linuxcpuname2 = {"-c"," cat /proc/cpuinfo | grep 'processor' " };
+            process_system.start("bash", linuxcpuname2);
             process_system.waitForFinished(3000);
             stdout = process_system.readAllStandardOutput();
             QStringList cpus = toStringList(stdout);
             qInfo() << cpus;
             QStringList::const_iterator constIterator;
             num_cpus = 0;
+            formlayout_CPU =  new QFormLayout();
+            ui->groupBox_CPU->setLayout(formlayout_CPU);
             for (constIterator = cpus.constBegin(); constIterator != cpus.constEnd(); ++constIterator)
             {
                 QCheckBox * cpu_chx = new QCheckBox();
                 cpu_chx->setCheckState(Qt::Checked);
                 cpu_boxes.insert(cpu_boxes.end(),cpu_chx);
-                ui->CPUformLayout->addRow(*constIterator,cpu_boxes[num_cpus]);
+                formlayout_CPU->addRow(*constIterator,cpu_boxes[num_cpus]);
                 num_cpus++;
             }
             qInfo() << "num cpus:" << num_cpus;
@@ -97,9 +100,9 @@ QStringList MainWindow::find_disks()
     process_system.start("bash", linuxnvmelist);
     process_system.waitForFinished(3000);
     QByteArray stdout = process_system.readAllStandardOutput();
-    qInfo() << "stdout size " << stdout.size();
+    qInfo() << "stdout len: " << stdout.size();
     QByteArray stderr = process_system.readAllStandardError();
-    qInfo() << "stderr size " << stderr.size();
+    qInfo() << "stderr len: " << stderr.size();
     QStringList temp = QString(stdout).split("\n");
     qInfo() << process_system.exitStatus();
     qInfo() << "stdout: " << stdout;
@@ -111,13 +114,13 @@ QStringList MainWindow::find_disks()
         if (junk.size() > 2) disks.append(junk.simplified().split(" ")[0]);
     }
     qInfo() << disks;
+    qInfo() << "done find_disks()";
     //num_disks = disks.size();
     return disks;
 }
 
 void MainWindow::setup_display()
 {
-
     disks_present = find_disks();
     running = false;
     setup_CPU_selector();
@@ -137,8 +140,13 @@ void MainWindow::setup_display()
         }
         thisDisk->ndx = i;
         thisDisk->num_queues = num_cpus + 1;
+        thisDisk->lastQD = new std::vector<int>;
         for (int j = 0; j < thisDisk->num_queues; j++) {
+            // init last qd to 0
+            thisDisk->lastQD->insert(thisDisk->lastQD->end(),0);
+            // create a progress bar for each q
             QProgressBar * pBar = new QProgressBar();
+            pBar->setMaximumHeight(10);
             pBar->setTextVisible(false);
             //pBar->setMaximumWidth(200);
             thisDisk->pBars.insert(thisDisk->pBars.end(),pBar);
@@ -157,16 +165,37 @@ void MainWindow::setup_display()
         icon->setPixmap(*green_disk);
         icons->addWidget(icon);
         icons->addWidget(ndx);
+        thisDisk->selector_checkbox = new QCheckBox();
+        QLabel * cb_label;
+        if (thisDisk->present)
+        {
+            thisDisk->selector_checkbox->setCheckState(Qt::Checked);
+            cb_label = new QLabel("enabled");
+            qInfo() << thisDisk->name;
+        } else
+        {
+            thisDisk->selector_checkbox->setCheckState(Qt::Unchecked);
+            cb_label = new QLabel("<s>enabled</s>");
+            thisDisk->selector_checkbox->setEnabled(false);
+        }
+        QFormLayout *formlayout_TGT_int =  new QFormLayout();
+        //QLabel * cb_label = new QLabel("enabled");
+        formlayout_TGT_int->addRow(cb_label,thisDisk->selector_checkbox);
+        icons->addLayout(formlayout_TGT_int);
         thisDisk->hddLayout->addLayout(icons);
-        //thisDisk->hddLayout->addWidget(ndx);
-        //thisDisk->hddLayout->addWidget(icon);
         QVBoxLayout * queues = new QVBoxLayout();
         thisDisk->hddLayout->addLayout(queues);
+        QLabel *ql = new QLabel("queues");
+        ql->setAlignment(Qt::AlignCenter);
+        queues->addWidget(ql);
+        QFont f( "Arial", 10);
         int c = 0;
         for (QProgressBar* qpb : thisDisk->pBars){
             QHBoxLayout *h = new QHBoxLayout();
             queues->addLayout(h);
-            h->addWidget(new QLabel(QString::number(c)));
+            QLabel * qn = new QLabel(QString::number(c));
+            qn->setFont(f);
+            h->addWidget(qn);
             h->addWidget(qpb);
             c++;
         }
@@ -178,48 +207,51 @@ void MainWindow::setup_display()
         thisDisk->statsLayout->addWidget(thisDisk->bw_label);
         thisDisk->statsLayout->addWidget(new QLabel("IOPS"));
         thisDisk->statsLayout->addWidget(thisDisk->iops_label);
+        qInfo() << "tracking disk " << thisDisk->name;
         disks.insert(disks.end(),thisDisk);
     }
     qInfo() << disks;
 
     int c = 0;
-    ui->plainTextEdit->appendPlainText("scanning for NVMe disks");
+    qInfo() << "scanning for NVMe disks";
     for (HDD *h : disks) {
-        h->selector_checkbox = new QCheckBox();
-        if (h->present)
-        {
-            h->selector_checkbox->setCheckState(Qt::Checked);
-            ui->plainTextEdit->appendPlainText(h->name);
-        } else
-        {
-            h->selector_checkbox->setCheckState(Qt::Unchecked);
-            h->selector_checkbox->setEnabled(false);
-        }
-        ui->CPUformLayout_Target->addRow(h->name,h->selector_checkbox);
+//        h->selector_checkbox = new QCheckBox();
+//        if (h->present)
+//        {
+//            h->selector_checkbox->setCheckState(Qt::Checked);
+//            ui->plainTextEdit->appendPlainText(h->name);
+//        } else
+//        {
+//            h->selector_checkbox->setCheckState(Qt::Unchecked);
+//            h->selector_checkbox->setEnabled(false);
+//        }
+        qInfo() << "adding disk " << h->name << "to layout";
+//        ui->CPUformLayout_Target->addRow(h->name,h->selector_checkbox);
         if (c < 3)
         {
             ui->drive_verticalLayout->addWidget(h->disk_frame);
-            ui->drive_verticalLayout->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout->addLayout(h->hddLayout);
         } else if (c < 6)
         {
             ui->drive_verticalLayout2->addWidget(h->disk_frame);
-            ui->drive_verticalLayout2->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout2->addLayout(h->hddLayout);
         } else if (c < 9)
         {
             ui->drive_verticalLayout3->addWidget(h->disk_frame);
-            ui->drive_verticalLayout3->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout3->addLayout(h->hddLayout);
         }
         else
         {
             ui->drive_verticalLayout4->addWidget(h->disk_frame);
-            ui->drive_verticalLayout4->addLayout(h->hddLayout);
+            //ui->drive_verticalLayout4->addLayout(h->hddLayout);
          }
         c++;
     }
     ui->plainTextEdit->setStyleSheet("QPlainTextEdit {background-color: black; color: red;}");
     ui->action_Start->setEnabled(false);
     ui->StopWork->setEnabled(false);
-    ui->plainTextEdit->appendPlainText("Initialized");
+    qInfo() << "done setup_display()";
+    qInfo() << "stat: Initialized";
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -237,6 +269,7 @@ void MainWindow::on_action_Init_triggered()
 
 void MainWindow::handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,int> bw_map )
 {
+    read_chassis_serialport();
     if (!update_ok)
     {
         qInfo() << "received IOPS update with display update disabled";
@@ -265,6 +298,7 @@ void MainWindow::handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,i
 
 void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
 {
+    read_chassis_serialport();
     if (!update_ok)
     {
         qInfo() << "received QD update with display update disabled";
@@ -277,17 +311,18 @@ void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
         }
         return;
     }
-    QMapIterator<int, QMap<int,int>> i(result);
-    while (i.hasNext())
+    QMapIterator<int, QMap<int,int>> disk(result);
+    while (disk.hasNext())
     {
-     i.next();
-     QMapIterator<int,int> q(i.value());
+     disk.next();
+     qInfo() << "QD data" << disk.value();
+     QMapIterator<int,int> q(disk.value());
      while (q.hasNext())
      {
         q.next();
-        if (q.key() < disks[i.key()]->pBars.size())
+        if (q.key() < disks[disk.key()]->pBars.size())
         {
-            disks[i.key()]->pBars[q.key()]->setValue(q.value());
+            disks[disk.key()]->pBars[q.key()]->setValue(q.value());
         }
      }
     }
@@ -319,7 +354,6 @@ void MainWindow::start_system()
 
     }
     qInfo() << iostr;
-    ui->plainTextEdit->appendPlainText(iostr);
     workerThread = new QThread();
     nvmeworker * worker = new nvmeworker();
     worker->moveToThread(workerThread);
@@ -329,11 +363,14 @@ void MainWindow::start_system()
     connect(worker, SIGNAL(error(QString)), this, SLOT(errorString(QString))); //propagate errors
     connect(worker, SIGNAL(finished()), workerThread, SLOT(quit())); // when worker emits finished it quit()'s thread
     connect(this, SIGNAL(finish_thread()), worker, SLOT(finish()));
+    connect(this, SIGNAL(reset_nvmeworker()), worker, SLOT(reset()));
     connect(worker, &nvmeworker::resultReady, this, &MainWindow::handleResults);
     connect(worker, &nvmeworker::update_iops, this, &MainWindow::handleUpdateIOPS);
+    connect(worker, &nvmeworker::update_chassis, this, &MainWindow::handleUpdateChassisPort);
     workerThread->start();
     ui->statusbar->showMessage("Thread started",1000);
     ui->SetWork->setEnabled(true);
+    qInfo() << "done start_system()";
 }
 
 void MainWindow::on_actionS_top_triggered()
@@ -351,8 +388,7 @@ void MainWindow::on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus)
 {
     qInfo() << "recieved fio exit signal" << exitCode << exitStatus;
     ui->statusbar->showMessage("fio stopped");
-    ui->plainTextEdit->appendPlainText("fio stopped");
-    //delete fioProcess;
+    qInfo() << "fio stopped";
 }
 
 void MainWindow::on_fio_stdout()
@@ -369,10 +405,11 @@ QStringList MainWindow::get_fio_targets()
         if (d->selector_checkbox->checkState() == Qt::Checked)
         {
             targets.append(d->name);
-            ui->plainTextEdit->appendPlainText(QString("added %1").arg(d->name));
+            qInfo() << (QString("added %1").arg(d->name));
         }
     }
     qInfo() << "fio targets:" << targets;
+    qInfo() << "done get_fio_targets()" ;
     return targets;
 }
 
@@ -430,11 +467,12 @@ int MainWindow::start_fio()
     fioProcess = new QProcess();
     connect(fioProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(on_fio_exit(int, QProcess::ExitStatus)));
     connect(fioProcess,SIGNAL(readyReadStandardOutput()),this,SLOT(on_fio_stdout()));
+    connect(fioProcess,SIGNAL(readyReadStandardError()),this,SLOT(on_fio_stdout()));
     fioProcess->start(program,fioParameters);
-    int timer = 0;
     QThread::msleep(250);
     qInfo() << "waiting for fio to start..." << fioProcess->state();
     fio_need_killing = true;
+    qInfo() << "done start_fio()";
     return status;
 }
 
@@ -442,11 +480,15 @@ void MainWindow::on_SetWork_clicked()
 {
     if (start_fio())
     {
-        ui->plainTextEdit->appendPlainText("unable to start fio, please check things out and try again");
+        ui->statusbar->showMessage("unable to start fio, please check things out and try again");
+        QMessageBox msgBox;
+        msgBox.setText("unable to start fio, please check things out and try again");
+        msgBox.exec();
         return;
     }
     update_ok = true;
     ui->SetWork->setEnabled(false);
+    qInfo() << "done on_SetWork_clicked()";
 }
 
 
@@ -465,6 +507,63 @@ void MainWindow::on_StopWork_clicked()
     }
     ui->SetWork->setEnabled(true);
     ui->StopWork->setEnabled(false);
+    reset_nvmeworker();
     update_ok = false;
+    qInfo() << "done on_StopWork_clicked()";
+}
+
+bool MainWindow::setup_chassis_serialport()
+{
+    bool stat = true;
+    QStringList portnames;
+    QList<QSerialPortInfo> portinfos = QSerialPortInfo::availablePorts();
+    for (QSerialPortInfo p : portinfos)
+    {
+        portnames << p.portName();
+    }
+    QString port = QInputDialog::getItem(this, "Select port", "port:", portnames);
+    qInfo() << "selected port" << port;
+    chassis_port = new QSerialPort();
+    chassis_port->setPortName(port);
+    chassis_port->setDataBits(QSerialPort::Data8);
+    chassis_port->setParity(QSerialPort::NoParity);
+    chassis_port->setStopBits(QSerialPort::OneStop);
+    chassis_port->setBaudRate(230400);
+    chassis_port->setFlowControl(QSerialPort::NoFlowControl);
+    chassis_port->open(QIODevice::ReadOnly);
+    read_chassis_serialport();
+    chassis_timer = startTimer(500);
+    chassis_port_up = true;
+    qInfo() << "done setup_chassis_serialport()";
+    return stat;
+}
+
+void MainWindow::read_chassis_serialport()
+{
+    //qInfo() << "read chassis port, port is "  << chassis_port_up;
+    int ctr = 0;
+    char buffer[512];
+    if (chassis_port_up)
+    {
+        while ( chassis_port->canReadLine())
+        {
+            chassis_port->readLine(buffer,511);
+            qInfo() << buffer;
+            ui->plainTextEdit->appendPlainText(buffer);
+            ctr++;
+            if (ctr > 5) return;
+        }
+    }
+}
+
+void MainWindow::handleUpdateChassisPort()
+{
+    read_chassis_serialport();
+}
+
+void MainWindow::on_action_Serial_Setup_triggered()
+{
+    bool stat = setup_chassis_serialport();
+    qInfo() << "done on_action_Serial_Setup_triggered()";
 }
 

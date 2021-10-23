@@ -16,6 +16,10 @@
 #include <QRegularExpression>
 #include <QThread>
 #include <QMessageBox>
+#include <QInputDialog>
+#include <QtSerialPort/QSerialPort>
+#include <QtSerialPort/QSerialPortInfo>
+
 
 #include "nvmeworker.h"
 
@@ -38,17 +42,20 @@ private slots:
     void on_actionS_top_triggered();
     void handleResults(const QMap<int, QMap<int,int>> result);
     void handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,int> bw_map);
+    void handleUpdateChassisPort();
     void errorString(QString err);
-
     void on_SetWork_clicked();
     void on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus);
     void on_fio_stdout();
 
     void on_StopWork_clicked();
 
+    void on_action_Serial_Setup_triggered();
+
 signals:
     void operate(const QString &);
     void finish_thread();
+    void reset_nvmeworker();
 
 protected:
     void timerEvent(QTimerEvent *event) override;
@@ -65,6 +72,7 @@ private:
         int iops;
         QString name;
         std::vector<QProgressBar*> pBars;
+        std::vector<int> * lastQD;
         QHBoxLayout *hddLayout;
         QVBoxLayout *statsLayout;
         QLabel *iops_label;
@@ -77,6 +85,7 @@ private:
     std::vector<int> active_cpus;
     QStringList disks_present;
     QPlainTextEdit* mainTextWindow;
+    QFormLayout *formlayout_CPU;
     bool running;
     bool update_ok = false;
     int timer;
@@ -86,6 +95,9 @@ private:
     QThread *workerThread;
 // thread to run fio
     QProcess *fioProcess;
+    QSerialPort *chassis_port;
+    bool chassis_port_up = false;
+    int chassis_timer;
 
 // class methods
     void setup_display();
@@ -95,6 +107,8 @@ private:
     int start_fio();
     void start_system();
     QStringList get_fio_targets();
+    bool setup_chassis_serialport();
+    void read_chassis_serialport();
 
 };
 #endif // MAINWINDOW_H
