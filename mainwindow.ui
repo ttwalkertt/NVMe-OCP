@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2896</width>
+    <width>3292</width>
     <height>1324</height>
    </rect>
   </property>
@@ -34,7 +34,7 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_4">
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_4">
+        <widget class="QGraphicsView" name="graphicsView_01">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -109,7 +109,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_6">
+        <widget class="QGraphicsView" name="graphicsView_04">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -155,13 +155,6 @@
        <string>GroupBox</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_9">
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_25">
-         <property name="text">
-          <string>TextLabel</string>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="2">
         <widget class="QLabel" name="label_23">
          <property name="text">
@@ -169,8 +162,18 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="label_24">
+         <property name="text">
+          <string>Queues</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
        <item row="3" column="1">
-        <widget class="QGraphicsView" name="graphicsView_11">
+        <widget class="QGraphicsView" name="graphicsView_08">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -185,13 +188,10 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="label_24">
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_25">
          <property name="text">
-          <string>Queues</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <string>TextLabel</string>
          </property>
         </widget>
        </item>
@@ -238,7 +238,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_7">
+        <widget class="QGraphicsView" name="graphicsView_06u">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -264,7 +264,7 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QGraphicsView" name="graphicsView_8">
+        <widget class="QGraphicsView" name="graphicsView_06l">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -281,9 +281,6 @@
        </item>
       </layout>
      </widget>
-    </item>
-    <item row="8" column="0" colspan="4">
-     <widget class="QPlainTextEdit" name="plainTextEdit"/>
     </item>
     <item row="3" column="0">
      <widget class="QGroupBox" name="groupBox_d2">
@@ -328,7 +325,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_2">
+        <widget class="QGraphicsView" name="graphicsView_02">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -365,7 +362,7 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_12">
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_15">
+        <widget class="QGraphicsView" name="graphicsView_11">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -426,7 +423,7 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_13">
        <item row="1" column="2">
-        <widget class="QGraphicsView" name="graphicsView_16">
+        <widget class="QGraphicsView" name="graphicsView_10">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -539,45 +536,6 @@
        <string>GroupBox</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_11">
-       <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_14">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>500</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QLabel" name="label_31">
-         <property name="text">
-          <string>IOPS</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QGraphicsView" name="graphicsView_13">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>500</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="1">
         <widget class="QLabel" name="label_29">
          <property name="text">
@@ -588,10 +546,10 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_30">
+       <item row="0" column="2">
+        <widget class="QLabel" name="label_31">
          <property name="text">
-          <string>TextLabel</string>
+          <string>IOPS</string>
          </property>
         </widget>
        </item>
@@ -599,6 +557,45 @@
         <widget class="Line" name="line_4">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QGraphicsView" name="graphicsView_12u">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>500</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QGraphicsView" name="graphicsView_12l">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>500</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_30">
+         <property name="text">
+          <string>TextLabel</string>
          </property>
         </widget>
        </item>
@@ -634,7 +631,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_5">
+        <widget class="QGraphicsView" name="graphicsView_05">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -685,7 +682,7 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_8">
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_10">
+        <widget class="QGraphicsView" name="graphicsView_09u">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -725,7 +722,7 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QGraphicsView" name="graphicsView_9">
+        <widget class="QGraphicsView" name="graphicsView_09l">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -909,36 +906,17 @@
        <string>GroupBox</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="2">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Queues</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
+       <item row="4" column="0" colspan="3">
+        <widget class="Line" name="line_5">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
-       <item row="0" column="3">
+       <item row="0" column="2">
         <widget class="QLabel" name="label">
          <property name="text">
           <string>IOPS</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QGraphicsView" name="graphicsView">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>500</width>
-           <height>0</height>
-          </size>
          </property>
         </widget>
        </item>
@@ -949,8 +927,8 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
-        <widget class="QGraphicsView" name="graphicsView_3">
+       <item row="3" column="1">
+        <widget class="QGraphicsView" name="graphicsView_03u">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -965,10 +943,29 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0" colspan="4">
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+       <item row="5" column="1">
+        <widget class="QGraphicsView" name="graphicsView_03l">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>500</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Queues</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -1039,7 +1036,7 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_10">
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="graphicsView_12">
+        <widget class="QGraphicsView" name="graphicsView_07">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -1081,6 +1078,9 @@
       </layout>
      </widget>
     </item>
+    <item row="8" column="1" colspan="3">
+     <widget class="QPlainTextEdit" name="plainTextEdit"/>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -1088,7 +1088,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>2896</width>
+     <width>3292</width>
      <height>26</height>
     </rect>
    </property>

@@ -17,6 +17,9 @@
 #include <QThread>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QGraphicsView>
+#include <QGraphicsRectItem>
+#include <QGroupBox>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 
@@ -72,6 +75,7 @@ private:
         int iops;
         QString name;
         std::vector<QProgressBar*> pBars;
+        std::vector<QGraphicsRectItem *> qBars;
         std::vector<int> * lastQD;
         QHBoxLayout *hddLayout;
         QVBoxLayout *statsLayout;
@@ -79,7 +83,11 @@ private:
         QLabel *bw_label;
         QFrame *disk_frame;
         QCheckBox * selector_checkbox;
+        QGroupBox * my_group;
+        QGraphicsScene * my_scene;
+        QGraphicsView * my_view;
     };
+    std::vector<QGroupBox*> my_slots;
     std::vector<HDD*> disks;
     std::vector<QCheckBox*> cpu_boxes;
     std::vector<int> active_cpus;
@@ -98,6 +106,7 @@ private:
     QSerialPort *chassis_port;
     bool chassis_port_up = false;
     int chassis_timer;
+    qreal full_scale_qd = 200;
 
 // class methods
     void setup_display();
@@ -109,6 +118,7 @@ private:
     QStringList get_fio_targets();
     bool setup_chassis_serialport();
     void read_chassis_serialport();
+    void update_qgraph(HDD*, std::vector<int> qds);
 
 };
 #endif // MAINWINDOW_H

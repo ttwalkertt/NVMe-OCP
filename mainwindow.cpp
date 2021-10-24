@@ -120,8 +120,22 @@ QStringList MainWindow::find_disks()
     return disks;
 }
 
+void MainWindow::update_qgraph(HDD* disk, std::vector<int> qds)
+{
+
+    qreal maxY = 200;
+    for (int i = 0; i < qds.size(); i++)
+    {
+        QRectF r = disk->qBars[i]->rect();
+        r.setTop(maxY * (1-qds[i]/full_scale_qd));
+    }
+
+
+}
+
 void MainWindow::setup_display()
 {
+
     disks_present = find_disks();
     running = false;
     setup_CPU_selector();
@@ -139,8 +153,77 @@ void MainWindow::setup_display()
             thisDisk->name = QString("not present");
             thisDisk->present = false;
         }
+
+        switch (i) {
+        case 0:
+            thisDisk->my_group = ui->groupBox_d1;
+            thisDisk->my_view = ui->graphicsView_01;
+            break;
+        case 1:
+            thisDisk->my_group = ui->groupBox_d2;
+            thisDisk->my_view = ui->graphicsView_02;
+            break;
+        case 2:
+            thisDisk->my_group = ui->groupBox_d3;
+            thisDisk->my_view = ui->graphicsView_03u;
+            break;
+        case 3:
+            thisDisk->my_group = ui->groupBox_d4;
+            thisDisk->my_view = ui->graphicsView_04;
+            break;
+        case 4:
+            thisDisk->my_group = ui->groupBox_d5;
+            thisDisk->my_view = ui->graphicsView_05;
+            break;
+        case 5:
+            thisDisk->my_group = ui->groupBox_d6;
+            thisDisk->my_view = ui->graphicsView_06u;
+            break;
+        case 6:
+            thisDisk->my_group = ui->groupBox_d7;
+            thisDisk->my_view = ui->graphicsView_07;
+            break;
+        case 7:
+            thisDisk->my_group = ui->groupBox_d8;
+            thisDisk->my_view = ui->graphicsView_08;
+            break;
+        case 8:
+            thisDisk->my_group = ui->groupBox_d9;
+            thisDisk->my_view = ui->graphicsView_09u;
+            break;
+        case 9:
+            thisDisk->my_group = ui->groupBox_d10;
+            thisDisk->my_view = ui->graphicsView_10;
+            break;
+        case 10:
+            thisDisk->my_group = ui->groupBox_d11;
+            thisDisk->my_view = ui->graphicsView_11;
+            break;
+        case 11:
+            thisDisk->my_group = ui->groupBox_d12;
+            thisDisk->my_view = ui->graphicsView_12u;
+            break;
+        default:
+            qInfo() << "Error here parsing disk - UI mapping";
+            break;
+        }
+        thisDisk->my_view->setMinimumHeight(250);
+        thisDisk->my_scene = new QGraphicsScene();
+        thisDisk->my_view->setScene(thisDisk->my_scene);
         thisDisk->ndx = i;
         thisDisk->num_queues = num_cpus + 1;
+        qreal w = thisDisk->my_view->width();
+        qreal h = thisDisk->my_view->height();
+        qInfo() << "disk:" << i << "view heigth:width" << h << w;
+        qreal bar_width = w / (thisDisk->num_queues + 2);
+        int bar_margin = 3;
+        for (int i = 0; i < thisDisk->num_queues; i++)
+        {
+            QGraphicsRectItem * r = new QGraphicsRectItem(i*bar_width + bar_margin,0,bar_width,h);
+            r->setBrush(QBrush(Qt::red));
+            qInfo() << "bar: X:" << i*bar_width << "width: " << bar_width << "heigth: " <<  h;
+            thisDisk->my_scene->addItem(r);
+        }
         thisDisk->lastQD = new std::vector<int>;
         for (int j = 0; j < thisDisk->num_queues; j++) {
             // init last qd to 0
@@ -321,6 +404,7 @@ void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
      while (q.hasNext())
      {
         q.next();
+        update_qgraph(disks[disk.key()],q.value());
         if (q.key() < disks[disk.key()]->pBars.size())
         {
             disks[disk.key()]->pBars[q.key()]->setValue(q.value());
