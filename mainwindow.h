@@ -20,8 +20,8 @@
 #include <QGraphicsView>
 #include <QGraphicsRectItem>
 #include <QGroupBox>
-#include <QtSerialPort/QSerialPort>
-#include <QtSerialPort/QSerialPortInfo>
+#include <QSettings>
+#include <QFileInfo>
 
 
 #include "nvmeworker.h"
@@ -50,10 +50,9 @@ private slots:
     void on_SetWork_clicked();
     void on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus);
     void on_fio_stdout();
-
     void on_StopWork_clicked();
-
     void on_action_Serial_Setup_triggered();
+    void on_pushButton_clicked();
 
 signals:
     void operate(const QString &);
@@ -65,8 +64,21 @@ protected:
 
 private:
     Ui::MainWindow *ui;
+    // 2U12 support
     int num_disks = 12;
+
+    //compute platform support
     int num_cpus = 0;
+
+    //INI file support
+    QString iniFileName = "OCP_settings.ini";
+    void load_INI_settings();
+    std::map<int,QString> INI_my_slots;
+
+    // QD chart sizing
+    qreal qd_chart_maxY = 200;  // height of the qd chart bars in pixels. update this when building the UI
+    qreal full_scale_qd = 100;  // full scale queue depth - will cap the display here
+    // one of these for each disk
     struct HDD {
         bool present;
         int ndx;
@@ -103,10 +115,8 @@ private:
     QThread *workerThread;
 // thread to run fio
     QProcess *fioProcess;
-    QSerialPort *chassis_port;
-    bool chassis_port_up = false;
-    int chassis_timer;
-    qreal full_scale_qd = 200;
+
+    int dummyqd_input = 0;
 
 // class methods
     void setup_display();
@@ -116,9 +126,10 @@ private:
     int start_fio();
     void start_system();
     QStringList get_fio_targets();
-    bool setup_chassis_serialport();
+    void setup_chassis_serialport();
     void read_chassis_serialport();
-    void update_qgraph(HDD*, std::vector<int> qds);
+    void update_qgraph(HDD*, QMap<int,int> qds);
+    void exercise_qd_display();
 
 };
 #endif // MAINWINDOW_H

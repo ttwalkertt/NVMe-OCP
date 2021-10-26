@@ -12,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionS_top->setEnabled(false);
     ui->SetWork->setEnabled(false);
     qRegisterMetaType<QMap<int,QMap<int,int>>>();
+    load_INI_settings();
     setup_display();
     qApp->setStyleSheet("QGroupBox {  border: 5px solid gray;}");
     start_system();
@@ -48,6 +49,35 @@ QStringList MainWindow::toStringList(const QByteArray list) {
     strings = strings.replaceInStrings("processor: ","CPU:");
     return strings;
 }
+
+
+void MainWindow::load_INI_settings()
+{
+    qInfo() << "loading INI settings from" << iniFileName;
+    if(QFileInfo::exists(iniFileName) && QFileInfo(iniFileName).isFile())
+    {
+        QSettings * settings = new QSettings(iniFileName,QSettings::IniFormat);
+        qInfo() << settings->childGroups();
+        settings->beginGroup("slots");
+        QStringList childKeys = settings->childKeys();
+        for ( const auto& i : childKeys  )
+            {
+                qDebug() << i.toInt() << settings->value(i).toString();
+                INI_my_slots[i.toInt()] = settings->value(i).toString();
+            }
+
+        qInfo() << INI_my_slots;
+    } else
+    {
+        QString errmsg = QString("ERROR unable to open %1").arg(iniFileName);
+        QMessageBox msgBox;
+        msgBox.setText(errmsg);
+        msgBox.exec();
+        QApplication::quit();
+    }
+
+}
+
 
 int MainWindow::setup_CPU_selector()
 {
@@ -118,19 +148,6 @@ QStringList MainWindow::find_disks()
     qInfo() << "done find_disks()";
     //num_disks = disks.size();
     return disks;
-}
-
-void MainWindow::update_qgraph(HDD* disk, std::vector<int> qds)
-{
-
-    qreal maxY = 200;
-    for (int i = 0; i < qds.size(); i++)
-    {
-        QRectF r = disk->qBars[i]->rect();
-        r.setTop(maxY * (1-qds[i]/full_scale_qd));
-    }
-
-
 }
 
 void MainWindow::setup_display()
@@ -207,7 +224,8 @@ void MainWindow::setup_display()
             qInfo() << "Error here parsing disk - UI mapping";
             break;
         }
-        thisDisk->my_view->setMinimumHeight(250);
+        thisDisk->my_view->setMinimumHeight(qd_chart_maxY);
+        thisDisk->my_view->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
         thisDisk->my_scene = new QGraphicsScene();
         thisDisk->my_view->setScene(thisDisk->my_scene);
         thisDisk->ndx = i;
@@ -223,6 +241,7 @@ void MainWindow::setup_display()
             r->setBrush(QBrush(Qt::red));
             qInfo() << "bar: X:" << i*bar_width << "width: " << bar_width << "heigth: " <<  h;
             thisDisk->my_scene->addItem(r);
+            thisDisk->qBars.push_back(r);
         }
         thisDisk->lastQD = new std::vector<int>;
         for (int j = 0; j < thisDisk->num_queues; j++) {
@@ -296,40 +315,19 @@ void MainWindow::setup_display()
     }
     qInfo() << disks;
 
-    int c = 0;
     qInfo() << "scanning for NVMe disks";
     for (HDD *h : disks) {
-//        h->selector_checkbox = new QCheckBox();
-//        if (h->present)
-//        {
-//            h->selector_checkbox->setCheckState(Qt::Checked);
-//            ui->plainTextEdit->appendPlainText(h->name);
-//        } else
-//        {
-//            h->selector_checkbox->setCheckState(Qt::Unchecked);
-//            h->selector_checkbox->setEnabled(false);
-//        }
         qInfo() << "adding disk " << h->name << "to layout";
-//        ui->CPUformLayout_Target->addRow(h->name,h->selector_checkbox);
-        if (c < 3)
-        {
-            //ui->drive_verticalLayout->addWidget(h->disk_frame);
-            //ui->drive_verticalLayout->addLayout(h->hddLayout);
-        } else if (c < 6)
-        {
-            //ui->drive_verticalLayout2->addWidget(h->disk_frame);
-            //ui->drive_verticalLayout2->addLayout(h->hddLayout);
-        } else if (c < 9)
-        {
-            //ui->drive_verticalLayout3->addWidget(h->disk_frame);
-            //ui->drive_verticalLayout3->addLayout(h->hddLayout);
-        }
-        else
-        {
-            //ui->drive_verticalLayout4->addWidget(h->disk_frame);
-            //ui->drive_verticalLayout4->addLayout(h->hddLayout);
-         }
-        c++;
+//        for (int qd = 200; qd > 0; qd-=10)
+//        {
+//            qInfo() << qd;
+//            for (int i = 0; i < num_cpus+1; i++)
+//            {
+//                dummyqd[i] = qd;
+//            }
+//            update_qgraph(h,dummyqd);
+//            QThread::msleep(10);
+//        }
     }
     ui->plainTextEdit->setStyleSheet("QPlainTextEdit {background-color: black; color: red;}");
     ui->action_Start->setEnabled(false);
@@ -337,6 +335,25 @@ void MainWindow::setup_display()
     qInfo() << "done setup_display()";
     qInfo() << "stat: Initialized";
 }
+
+void MainWindow::exercise_qd_display()
+{
+     QMap<int,int> dummyqd;
+     for (HDD *h : disks) {
+        qInfo() << "adding disk " << h->name << "to layout";
+        for (int qd = 200; qd > 0; qd-=10)
+        {
+            qInfo() << qd;
+            for (int i = 0; i < num_cpus+1; i++)
+            {
+                dummyqd[i] = qd;
+            }
+            update_qgraph(h,dummyqd);
+            QThread::msleep(10);
+        }
+    }
+}
+
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
@@ -380,9 +397,37 @@ void MainWindow::handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,i
     }
 }
 
+
+void MainWindow::update_qgraph(HDD* disk, QMap<int,int> qds)
+{
+    qInfo() << "update_qgraph received:" << disk->ndx << disk->name << qds;
+    //QMap<int,int>::const_iterator i;
+    //i = qds.constBegin();
+    for (int i = 0; i < disk->num_queues; i++)
+    {
+//        if (i.key() >= disk->num_queues)
+//        {
+//            QString msg = QString("Error: got qd for queue %1 but only %2 queues!").arg(i.key()).arg(disk->num_queues) ;
+//            qInfo() << msg << qds;
+//            return;
+//        }
+//        else
+//        {
+//            qInfo() << "qd update" << i.key() << i.value() << "queues avail:" << disk->qBars.size() << qds ;
+//            QRectF r = disk->qBars[i.key()]->rect();
+//            r.setBottom(0);
+//            r.setTop(qd_chart_maxY * (1-qds[i.value()]/full_scale_qd));
+//            disk->qBars[i.key()]->setRect(r);
+//        }
+        QRectF r = disk->qBars[i]->rect();
+        r.setTop(qd_chart_maxY * (1-qds[i]/full_scale_qd));
+        disk->qBars[i]->setRect(r);
+        qInfo() << "qd update" << i << qds[i] << "queues avail:" << disk->qBars.size() << "top:" << r.top() << "bottom:" << r.bottom();
+    }
+}
+
 void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
 {
-    read_chassis_serialport();
     if (!update_ok)
     {
         qInfo() << "received QD update with display update disabled";
@@ -399,17 +444,18 @@ void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
     while (disk.hasNext())
     {
      disk.next();
-     qInfo() << "QD data" << disk.value();
-     QMapIterator<int,int> q(disk.value());
-     while (q.hasNext())
-     {
-        q.next();
-        update_qgraph(disks[disk.key()],q.value());
-        if (q.key() < disks[disk.key()]->pBars.size())
-        {
-            disks[disk.key()]->pBars[q.key()]->setValue(q.value());
-        }
-     }
+     update_qgraph(disks[disk.key()],disk.value());
+     qInfo() << "QD data sent:" << disk.value() ;
+//     QMapIterator<int,int> q(disk.value());
+//     while (q.hasNext())
+//     {
+//        q.next();
+
+//        if (q.key() < disks[disk.key()]->pBars.size())
+//        {
+//            disks[disk.key()]->pBars[q.key()]->setValue(q.value());
+//        }
+//     }
     }
 }
 
@@ -563,6 +609,7 @@ int MainWindow::start_fio()
 
 void MainWindow::on_SetWork_clicked()
 {
+    exercise_qd_display();
     if (start_fio())
     {
         ui->statusbar->showMessage("unable to start fio, please check things out and try again");
@@ -597,48 +644,16 @@ void MainWindow::on_StopWork_clicked()
     qInfo() << "done on_StopWork_clicked()";
 }
 
-bool MainWindow::setup_chassis_serialport()
+void MainWindow::setup_chassis_serialport()
 {
-    bool stat = true;
-    QStringList portnames;
-    QList<QSerialPortInfo> portinfos = QSerialPortInfo::availablePorts();
-    for (QSerialPortInfo p : portinfos)
-    {
-        portnames << p.portName();
-    }
-    QString port = QInputDialog::getItem(this, "Select port", "port:", portnames);
-    qInfo() << "selected port" << port;
-    chassis_port = new QSerialPort();
-    chassis_port->setPortName(port);
-    chassis_port->setDataBits(QSerialPort::Data8);
-    chassis_port->setParity(QSerialPort::NoParity);
-    chassis_port->setStopBits(QSerialPort::OneStop);
-    chassis_port->setBaudRate(230400);
-    chassis_port->setFlowControl(QSerialPort::NoFlowControl);
-    chassis_port->open(QIODevice::ReadOnly);
-    read_chassis_serialport();
-    chassis_timer = startTimer(500);
-    chassis_port_up = true;
-    qInfo() << "done setup_chassis_serialport()";
-    return stat;
+    //depreciated
+    qInfo() << "called depreciated function setup_chassis_serialport()";
 }
 
 void MainWindow::read_chassis_serialport()
 {
-    //qInfo() << "read chassis port, port is "  << chassis_port_up;
-    int ctr = 0;
-    char buffer[512];
-    if (chassis_port_up)
-    {
-        while ( chassis_port->canReadLine())
-        {
-            chassis_port->readLine(buffer,511);
-            qInfo() << buffer;
-            ui->plainTextEdit->appendPlainText(buffer);
-            ctr++;
-            if (ctr > 5) return;
-        }
-    }
+    //depreciated
+    qInfo() << "called depreciated function setup_chassis_serialport()";
 }
 
 void MainWindow::handleUpdateChassisPort()
@@ -648,7 +663,23 @@ void MainWindow::handleUpdateChassisPort()
 
 void MainWindow::on_action_Serial_Setup_triggered()
 {
-    bool stat = setup_chassis_serialport();
+    setup_chassis_serialport();
     qInfo() << "done on_action_Serial_Setup_triggered()";
+}
+
+
+void MainWindow::on_pushButton_clicked()
+{
+    QMap<int,int> dummyqd;
+    dummyqd_input += 10;
+    if (dummyqd_input > 200) dummyqd_input = 0;
+    for (int i = 0; i < num_cpus+1; i++)
+    {
+        dummyqd[i] = dummyqd_input;
+    }
+    qInfo() << dummyqd;
+    for (HDD *h : disks) {
+        update_qgraph(h,dummyqd);
+    }
 }
 
