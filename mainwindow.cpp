@@ -75,11 +75,11 @@ void MainWindow::load_INI_settings()
         qd_chart_maxY = settings->value("qd_chart_maxY").toReal();
         full_scale_qd = settings->value("full_scale_qd").toReal();
         drive_top_row_heigth = settings->value("drive_top_row_heigth").toInt();
-        drive_graphics_view_heigth = settings->value("drive_group_box_heigth").toInt();
+        drive_group_box_heigth = settings->value("drive_group_box_heigth").toInt();
         grid_margin = settings->value("grid_margin").toInt();
         grid_row_0_min_h = settings->value("grid_row_0_min_h").toInt();
         drive_graphics_view_width = settings->value("drive_graphics_view_width").toInt();
-
+        drive_graphics_view_heigth = settings->value("drive_graphics_view_heigth").toInt();
         } else
         {
             QString errmsg = QString("ERROR unable to open %1").arg(iniFileName);
@@ -183,91 +183,102 @@ void MainWindow::setup_display()
         switch (i){
         case 1:
             thisDisk->my_slot = ui->groupBox_d1;
-            thisDisk->my_view[0] = ui->graphicsView_01;
-            thisDisk->my_grid_layout = ui->gridLayout_d01;
+//            thisDisk->my_view[0] = ui->graphicsView_01;
+//            thisDisk->my_grid_layout = ui->gridLayout_d01;
             break;
         case 2:
             thisDisk->my_slot = ui->groupBox_d2;
-            thisDisk->my_view[0] = ui->graphicsView_02;
-            thisDisk->my_grid_layout = ui->gridLayout_d02;
+//            thisDisk->my_view[0] = ui->graphicsView_02;
+//            thisDisk->my_grid_layout = ui->gridLayout_d02;
             break;
         case 3:
             thisDisk->my_slot = ui->groupBox_d3;
-            thisDisk->my_view[0] = ui->graphicsView_03u;
-            thisDisk->my_view[1] = ui->graphicsView_03l;
-            thisDisk->my_grid_layout = ui->gridLayout_d03;
+//            thisDisk->my_view[0] = ui->graphicsView_03u;
+//            thisDisk->my_view[1] = ui->graphicsView_03l;
+//            thisDisk->my_grid_layout = ui->gridLayout_d03;
             break;
         case 4:
             thisDisk->my_slot = ui->groupBox_d4;
-            thisDisk->my_view[0] = ui->graphicsView_04;
-            thisDisk->my_grid_layout = ui->gridLayout_d04;
+//            thisDisk->my_view[0] = ui->graphicsView_04;
+//            thisDisk->my_grid_layout = ui->gridLayout_d04;
             break;
         case 5:
             thisDisk->my_slot = ui->groupBox_d5;
-            thisDisk->my_view[0] = ui->graphicsView_05;
-            thisDisk->my_grid_layout = ui->gridLayout_d05;
+//            thisDisk->my_view[0] = ui->graphicsView_05;
+//            thisDisk->my_grid_layout = ui->gridLayout_d05;
             break;
         case 6:
             thisDisk->my_slot = ui->groupBox_d6;
-            thisDisk->my_view[0] = ui->graphicsView_06u;
-            thisDisk->my_view[1] = ui->graphicsView_06l;
-            thisDisk->my_grid_layout = ui->gridLayout_d06;
+//            thisDisk->my_view[0] = ui->graphicsView_06u;
+//            thisDisk->my_view[1] = ui->graphicsView_06l;
+//            thisDisk->my_grid_layout = ui->gridLayout_d06;
             thisDisk->is_DA = true;
             break;
         case 7:
             thisDisk->my_slot = ui->groupBox_d7;
-            thisDisk->my_view[0] = ui->graphicsView_07;
-            thisDisk->my_grid_layout = ui->gridLayout_d07;
+//            thisDisk->my_view[0] = ui->graphicsView_07;
+//            thisDisk->my_grid_layout = ui->gridLayout_d07;
             break;
         case 8:
             thisDisk->my_slot = ui->groupBox_d8;
-            thisDisk->my_view[0] = ui->graphicsView_08;
-            thisDisk->my_grid_layout = ui->gridLayout_d08;
+//            thisDisk->my_view[0] = ui->graphicsView_08;
+//            thisDisk->my_grid_layout = ui->gridLayout_d08;
             break;
         case 9:
             thisDisk->my_slot = ui->groupBox_d9;
-            thisDisk->my_view[0] = ui->graphicsView_09u;
-            thisDisk->my_view[1] = ui->graphicsView_09l;
-            thisDisk->my_grid_layout = ui->gridLayout_d09;
+//            thisDisk->my_view[0] = ui->graphicsView_09u;
+//            thisDisk->my_view[1] = ui->graphicsView_09l;
+//            thisDisk->my_grid_layout = ui->gridLayout_d09;
             thisDisk->is_DA = true;
             break;
         case 10:
             thisDisk->my_slot = ui->groupBox_d10;
-            thisDisk->my_view[0] = ui->graphicsView_10;
-            thisDisk->my_grid_layout = ui->gridLayout_d10;
+//            thisDisk->my_view[0] = ui->graphicsView_10;
+//            thisDisk->my_grid_layout = ui->gridLayout_d10;
             break;
         case 11:
             thisDisk->my_slot = ui->groupBox_d11;
-            thisDisk->my_view[0] = ui->graphicsView_11;
-            thisDisk->my_grid_layout = ui->gridLayout_d11;
+//            thisDisk->my_view[0] = ui->graphicsView_11;
+//            thisDisk->my_grid_layout = ui->gridLayout_d11;
             break;
         case 12:
             thisDisk->my_slot = ui->groupBox_d12;
-            thisDisk->my_view[0] = ui->graphicsView_12u;
-            thisDisk->my_view[1] = ui->graphicsView_12l;
-            thisDisk->my_grid_layout = ui->gridLayout_d12;
+//            thisDisk->my_view[0] = ui->graphicsView_12u;
+//            thisDisk->my_view[1] = ui->graphicsView_12l;
+//            thisDisk->my_grid_layout = ui->gridLayout_d12;
             thisDisk->is_DA = true;
             break;
         default:
             qInfo() << "Error in disk - UI mapping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
             break;
         }
-
-        for (int i=1;i<2;i++)
+        thisDisk->my_slot->setFixedHeight(drive_group_box_heigth);
+        thisDisk->my_slot->setMinimumWidth(drive_group_box_width);
+        thisDisk->my_grid_layout = new QGridLayout();
+        thisDisk->my_slot->setLayout(thisDisk->my_grid_layout);
+        QLabel * icon = new QLabel();
+        icon->setPixmap(*green_disk);
+        thisDisk->my_grid_layout->addWidget(icon,0,0);
+        for (int i=0;i<1;i++)
         {
             thisDisk->my_view[i]=new QGraphicsView();
+            qInfo() << "setting view h & w: " << drive_graphics_view_heigth << drive_graphics_view_width;
             thisDisk->my_view[i]->setFixedHeight(drive_graphics_view_heigth);
             thisDisk->my_view[i]->setFixedWidth(drive_graphics_view_width);
-            if ((i > 1) && (thisDisk->is_DA)) thisDisk->my_grid_layout->addWidget(thisDisk->my_view[i],i,1);
+            //thisDisk->my_view[i]->setMinimumHeight(drive_graphics_view_heigth);
+            thisDisk->my_view[i]->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+            thisDisk->my_view[i]->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+            thisDisk->my_view[i]->setFrameStyle(QFrame::Box);
+            thisDisk->my_scene[i] = new QGraphicsScene();
+            thisDisk->my_view[i]->setScene(thisDisk->my_scene[i]);
+            if ((i > 1) && (thisDisk->is_DA)) thisDisk->my_grid_layout->addWidget(thisDisk->my_view[i],1,i+1);
+            else
+            {
+                if(i==0)thisDisk->my_grid_layout->addWidget(thisDisk->my_view[i],1,i+1);
+                qInfo() << "added my_view at " << 1 << i+1;
+            }
         }
-        thisDisk->my_view[0]->setMinimumHeight(drive_graphics_view_heigth);
-        if (thisDisk->my_view[1])
-        {
-            thisDisk->my_view[1]->setMinimumHeight(drive_graphics_view_heigth);
-        }
-        thisDisk->my_view[0]->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
-        thisDisk->my_scene[0] = new QGraphicsScene();
-        thisDisk->my_view[0]->setScene(thisDisk->my_scene[0]);
+
         thisDisk->my_slot->setTitle(thisDisk->name);
         qInfo() << "grid layout children" << thisDisk->my_grid_layout->children();
         qInfo() << "drive group box children" << thisDisk->my_slot->children();
@@ -292,6 +303,23 @@ void MainWindow::setup_display()
         thisDisk->my_grid_layout->setMargin(grid_margin);
         thisDisk->my_grid_layout->setSpacing(5);
         thisDisk->my_grid_layout->setRowMinimumHeight(0,grid_row_0_min_h);
+        thisDisk->selector_checkbox = new QCheckBox();
+        QLabel * cb_label;
+        if (thisDisk->present)
+        {
+            thisDisk->selector_checkbox->setCheckState(Qt::Checked);
+            cb_label = new QLabel("enabled");
+            qInfo() << thisDisk->name;
+        } else
+        {
+            thisDisk->selector_checkbox->setCheckState(Qt::Unchecked);
+            cb_label = new QLabel("<s>enabled</s>");
+            thisDisk->selector_checkbox->setEnabled(false);
+        }
+        QFormLayout *formlayout_TGT_int =  new QFormLayout();
+        formlayout_TGT_int->addRow(cb_label,thisDisk->selector_checkbox);
+        thisDisk->my_grid_layout->addLayout(formlayout_TGT_int,1,0);
+        thisDisk->my_grid_layout->addWidget(new QLabel("QUEUES"),0,1,Qt::Alignment(Qt::AlignHCenter));
 
         QVBoxLayout *stats = new QVBoxLayout();
         thisDisk->bw_label = new QLabel("mbps");
@@ -302,7 +330,7 @@ void MainWindow::setup_display()
         stats->addWidget(thisDisk->bw_label);
         stats->addWidget(iops);
         stats->addWidget(thisDisk->iops_label);
-        //thisDisk->my_grid_layout->addLayout(stats,1,3);
+        thisDisk->my_grid_layout->addLayout(stats,1,2);
         if (thisDisk->slot_no == 3 )
         {
             QLabel *bw = new QLabel("BW");
@@ -333,24 +361,7 @@ void MainWindow::setup_display()
 //        icon->setPixmap(*green_disk);
 //        icons->addWidget(icon);
 //        icons->addWidget(ndx);
-        thisDisk->selector_checkbox = new QCheckBox();
-        QLabel * cb_label;
-        if (thisDisk->present)
-        {
-            thisDisk->selector_checkbox->setCheckState(Qt::Checked);
-            cb_label = new QLabel("enabled");
-            qInfo() << thisDisk->name;
-        } else
-        {
-            thisDisk->selector_checkbox->setCheckState(Qt::Unchecked);
-            cb_label = new QLabel("<s>enabled</s>");
-            thisDisk->selector_checkbox->setEnabled(false);
-        }
 
-        QFormLayout *formlayout_TGT_int =  new QFormLayout();
-
-        formlayout_TGT_int->addRow(cb_label,thisDisk->selector_checkbox);
-        thisDisk->my_grid_layout->addLayout(formlayout_TGT_int,0,0);
 //        icons->addLayout(formlayout_TGT_int);
 //        thisDisk->hddLayout->addLayout(icons);
 //        QVBoxLayout * queues = new QVBoxLayout();

@@ -84,6 +84,8 @@ private:
     int drive_top_row_heigth = 10;  //heigth of the top row. overriden by INI
     int drive_graphics_view_heigth = 450; //ibid
     int drive_graphics_view_width = 500;
+    int drive_group_box_heigth; // in INI
+    int drive_group_box_width = 600; // in INI
     int grid_margin = 15;
     int grid_row_0_min_h = 40;
 
