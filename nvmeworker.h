@@ -13,6 +13,11 @@
 #include <QRegularExpression>
 #include <QMetaType>
 
+//typedef QMap<QString,QMap<int,QMap<int,int>>> Queues;
+//typedef QMap<QString,QMap<int,int>> DeviceCounters;
+#define DeviceCounters QMap<QString,QMap<int,int>>
+#define Queues QMap<QString,QMap<int,QMap<int,int>>>
+
 class nvmeworker : public QObject
 {
     Q_OBJECT
@@ -29,10 +34,9 @@ public slots:
 
 signals:
 
-    void resultReady(const QMap<int, QMap<int,int>> result);
+    void resultReady(const Queues);
     void finished();
-    void update_iops(const QMap<int,int>, const QMap<int,int>);
-    void update_chassis();
+    void update_iops(const DeviceCounters, const DeviceCounters);
     void error(QString err);
 
 private:
@@ -43,12 +47,13 @@ private:
     void reduce_queue();
     QString * line_common(QString * line);
     int get_value(QStringList fields, QString selector);
+    void get_value(QStringList fields, QString selector, QString* value);
     QStringList fields;
     QFile * logfile;
     QTextStream  logstream;
-    QMap<int,QMap<int,int>> queues;
-    QMap<int,int> io_counts;
-    QMap<int,int> io_sectors;
+    Queues queues;
+    DeviceCounters io_counts;
+    DeviceCounters io_sectors;
     int iops_timer;
     int queue_timer;
     qint64 last_time = 0;

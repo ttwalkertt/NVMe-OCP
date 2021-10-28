@@ -12,6 +12,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionS_top->setEnabled(false);
     ui->SetWork->setEnabled(false);
     qRegisterMetaType<QMap<int,QMap<int,int>>>();
+    qRegisterMetaType<Queues>();
+    qRegisterMetaType<DeviceCounters>();
+    qRegisterMetaType<QMap<QString,QMap<int,QMap<int,int>>>>();
+    qRegisterMetaType<QMap<QString,QMap<int,int>>>();
     load_INI_settings();
     setup_display();
     qApp->setStyleSheet("QGroupBox {  border: 5px solid gray;}");
@@ -22,12 +26,12 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     on_StopWork_clicked();
-    if (thread_needs_killed)
-    {
-        workerThread->quit();
-        ui->statusbar->showMessage("shutting down...");
-        workerThread->wait(5);
-    }
+//    if (thread_needs_killed)
+//    {
+//        workerThread->quit();
+//        ui->statusbar->showMessage("shutting down...");
+//        workerThread->wait(5);
+//    }
     delete ui;
 }
 
@@ -50,23 +54,22 @@ QStringList MainWindow::toStringList(const QByteArray list) {
     return strings;
 }
 
-
 void MainWindow::load_INI_settings()
 {
     qInfo() << "loading INI settings from" << iniFileName;
     if(QFileInfo::exists(iniFileName) && QFileInfo(iniFileName).isFile())
     {
         QSettings * settings = new QSettings(iniFileName,QSettings::IniFormat);
-        qInfo() << settings->childGroups();
-        settings->beginGroup("slots");
+        qInfo() << "sections found in INI" << settings->childGroups();
+        qInfo() << "reading drives section of ini";
+        settings->beginGroup("drives");
         QStringList childKeys = settings->childKeys();
         for ( const auto& i : childKeys  )
             {
-                qDebug() << i.toInt() << settings->value(i).toString();
-                INI_my_slots[i.toInt()] = settings->value(i).toString();
+                qInfo() << i << settings->value(i).toString();
+                drive_to_slot_map[i]=settings->value(i).toInt();
             }
-
-        qInfo() << INI_my_slots;
+        qInfo() << drive_to_slot_map;
     } else
     {
         QString errmsg = QString("ERROR unable to open %1").arg(iniFileName);
@@ -75,9 +78,12 @@ void MainWindow::load_INI_settings()
         msgBox.exec();
         QApplication::quit();
     }
+    qInfo() << "listing drives->slots";
+    QMap<QString, int>::iterator it;
+    for (it = drive_to_slot_map.begin(); it != drive_to_slot_map.end(); it++)
+        qInfo() << it.key() << it.value();
 
 }
-
 
 int MainWindow::setup_CPU_selector()
 {
@@ -125,29 +131,19 @@ int MainWindow::setup_CPU_selector()
 
 QStringList MainWindow::find_disks()
 {
-    QProcess process_system;
     QStringList disks;
-    QStringList linuxnvmelist = {"-c"," nvme list | grep nvme" };
-    process_system.start("bash", linuxnvmelist);
-    process_system.waitForFinished(3000);
-    QByteArray stdout = process_system.readAllStandardOutput();
-    qInfo() << "stdout len: " << stdout.size();
-    QByteArray stderr = process_system.readAllStandardError();
-    qInfo() << "stderr len: " << stderr.size();
-    QStringList temp = QString(stdout).split("\n");
-    qInfo() << process_system.exitStatus();
-    qInfo() << "stdout: " << stdout;
-    qInfo() << "stderr: " << stderr;
-    for (int i = 0; i < temp.size(); ++i)
+    QMap<QString, int>::iterator it;
+    for (it = drive_to_slot_map.begin(); it != drive_to_slot_map.end(); it++)
     {
-        QString junk = temp.at(i);
-        junk = junk.replace("\t"," ");
-        if (junk.size() > 2) disks.append(junk.simplified().split(" ")[0]);
+        QString ns1 = "/dev/" + it.key() + "n1";
+        QString ns2 = "/dev/" + it.key() + "n2";
+        if ( QFileInfo::exists("/dev/" + it.key()) ) disks.append(it.key());
+        bool disk_present = QFileInfo::exists("/dev/" + it.key());
+        bool ns1_present = QFileInfo::exists(ns1);
+        bool ns2_present = QFileInfo::exists(ns2);
+        qInfo() << "checking for " << it.key() << it.value() << disk_present << ns1 << ns1_present << ns2 << ns2_present;
     }
-    qInfo() << disks;
-    qInfo() << "done find_disks()";
-    //num_disks = disks.size();
-    return disks;
+
 }
 
 void MainWindow::setup_display()
@@ -157,81 +153,118 @@ void MainWindow::setup_display()
     running = false;
     setup_CPU_selector();
     QPixmap *green_disk = new QPixmap(":/new/mainimages/hdd-green.png");
-    for (int i = 0; i < num_disks; i++) {
-        qInfo() << "initializing disk " << i;
+    //create list of chassis slots
+    QMap<QString,int>::iterator dit;
+    //for (int i = 1; i < num_chassis_slots + 1; i++)
+    for (dit = drive_to_slot_map.begin(); dit != drive_to_slot_map.end(); dit++)
+    {
+        //qInfo() << "initializing chassis slot " << i;
         HDD * thisDisk = new HDD();
-        if (i < disks_present.size())
-        {
-            thisDisk->name = disks_present[i].split("/")[2];
-            thisDisk->present = true;
-        }
-        else
-        {
-            thisDisk->name = QString("not present");
-            thisDisk->present = false;
-        }
-
-        switch (i) {
-        case 0:
-            thisDisk->my_group = ui->groupBox_d1;
-            thisDisk->my_view = ui->graphicsView_01;
-            break;
+        Chassis_slot * thisSlot = new Chassis_slot;
+        thisDisk->name = dit.key();
+        thisDisk->present = QFileInfo::exists("/dev/" + thisDisk->name);
+        thisDisk->namespaces[1].name = "/dev/" + dit.key() + "n1";
+        thisDisk->namespaces[1].present = QFileInfo::exists(thisDisk->namespaces[1].name);
+        thisDisk->namespaces[2].name = "/dev/" + dit.key() + "n2";
+        thisDisk->namespaces[2].present = QFileInfo::exists(thisDisk->namespaces[2].name);
+        thisDisk->slot_no = dit.value();
+        int i = dit.value();
+        switch (i){
         case 1:
-            thisDisk->my_group = ui->groupBox_d2;
-            thisDisk->my_view = ui->graphicsView_02;
+            thisDisk->my_slot = ui->groupBox_d1;
+            thisDisk->my_view[0] = ui->graphicsView_01;
+            thisDisk->my_grid_layout = ui->gridLayout_d01;
             break;
         case 2:
-            thisDisk->my_group = ui->groupBox_d3;
-            thisDisk->my_view = ui->graphicsView_03u;
+            thisDisk->my_slot = ui->groupBox_d2;
+            thisDisk->my_view[0] = ui->graphicsView_02;
+            thisDisk->my_grid_layout = ui->gridLayout_d02;
             break;
         case 3:
-            thisDisk->my_group = ui->groupBox_d4;
-            thisDisk->my_view = ui->graphicsView_04;
+            thisDisk->my_slot = ui->groupBox_d3;
+            thisDisk->my_view[0] = ui->graphicsView_03u;
+            thisDisk->my_view[1] = ui->graphicsView_03l;
+            thisDisk->my_grid_layout = ui->gridLayout_d03;
             break;
         case 4:
-            thisDisk->my_group = ui->groupBox_d5;
-            thisDisk->my_view = ui->graphicsView_05;
+            thisDisk->my_slot = ui->groupBox_d4;
+            thisDisk->my_view[0] = ui->graphicsView_04;
+            thisDisk->my_grid_layout = ui->gridLayout_d04;
             break;
         case 5:
-            thisDisk->my_group = ui->groupBox_d6;
-            thisDisk->my_view = ui->graphicsView_06u;
+            thisDisk->my_slot = ui->groupBox_d5;
+            thisDisk->my_view[0] = ui->graphicsView_05;
+            thisDisk->my_grid_layout = ui->gridLayout_d05;
             break;
         case 6:
-            thisDisk->my_group = ui->groupBox_d7;
-            thisDisk->my_view = ui->graphicsView_07;
+            thisDisk->my_slot = ui->groupBox_d6;
+            thisDisk->my_view[0] = ui->graphicsView_06u;
+            thisDisk->my_view[1] = ui->graphicsView_06l;
+            thisDisk->my_grid_layout = ui->gridLayout_d06;
             break;
         case 7:
-            thisDisk->my_group = ui->groupBox_d8;
-            thisDisk->my_view = ui->graphicsView_08;
+            thisDisk->my_slot = ui->groupBox_d7;
+            thisDisk->my_view[0] = ui->graphicsView_07;
+            thisDisk->my_grid_layout = ui->gridLayout_d07;
             break;
         case 8:
-            thisDisk->my_group = ui->groupBox_d9;
-            thisDisk->my_view = ui->graphicsView_09u;
+            thisDisk->my_slot = ui->groupBox_d8;
+            thisDisk->my_view[0] = ui->graphicsView_08;
+            thisDisk->my_grid_layout = ui->gridLayout_d08;
             break;
         case 9:
-            thisDisk->my_group = ui->groupBox_d10;
-            thisDisk->my_view = ui->graphicsView_10;
+            thisDisk->my_slot = ui->groupBox_d9;
+            thisDisk->my_view[0] = ui->graphicsView_09u;
+            thisDisk->my_view[1] = ui->graphicsView_09l;
+            thisDisk->my_grid_layout = ui->gridLayout_d09;
             break;
         case 10:
-            thisDisk->my_group = ui->groupBox_d11;
-            thisDisk->my_view = ui->graphicsView_11;
+            thisDisk->my_slot = ui->groupBox_d10;
+            thisDisk->my_view[0] = ui->graphicsView_10;
+            thisDisk->my_grid_layout = ui->gridLayout_d10;
             break;
         case 11:
-            thisDisk->my_group = ui->groupBox_d12;
-            thisDisk->my_view = ui->graphicsView_12u;
+            thisDisk->my_slot = ui->groupBox_d11;
+            thisDisk->my_view[0] = ui->graphicsView_11;
+            thisDisk->my_grid_layout = ui->gridLayout_d11;
+            break;
+        case 12:
+            thisDisk->my_slot = ui->groupBox_d12;
+            thisDisk->my_view[0] = ui->graphicsView_12u;
+            thisDisk->my_view[1] = ui->graphicsView_12l;
+            thisDisk->my_grid_layout = ui->gridLayout_d12;
             break;
         default:
-            qInfo() << "Error here parsing disk - UI mapping";
+            qInfo() << "Error in disk - UI mapping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
             break;
         }
-        thisDisk->my_view->setMinimumHeight(qd_chart_maxY);
-        thisDisk->my_view->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
-        thisDisk->my_scene = new QGraphicsScene();
-        thisDisk->my_view->setScene(thisDisk->my_scene);
+
+        thisDisk->my_view[0]->setMinimumHeight(qd_chart_maxY);
+        thisDisk->my_view[0]->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+        thisDisk->my_scene[0] = new QGraphicsScene();
+        thisDisk->my_view[0]->setScene(thisDisk->my_scene[0]);
+        thisDisk->my_slot->setTitle(thisDisk->name);
         thisDisk->ndx = i;
         thisDisk->num_queues = num_cpus + 1;
-        qreal w = thisDisk->my_view->width();
-        qreal h = thisDisk->my_view->height();
+        QVBoxLayout *stats = new QVBoxLayout();
+        thisDisk->bw_label = new QLabel("mbps");
+        thisDisk->iops_label = new QLabel("iops");
+        QLabel *bw = new QLabel("BW");
+        QLabel *iops = new QLabel("IOPS");
+        stats->addWidget(bw);
+        stats->addWidget(thisDisk->bw_label);
+        stats->addWidget(iops);
+        stats->addWidget(thisDisk->iops_label);
+        //thisDisk->my_grid_layout->addLayout(stats,1,3);
+        if (thisDisk->slot_no == 3 )
+        {
+            QLabel *bw = new QLabel("BW");
+            QLabel *iops = new QLabel("IOPS");
+            QVBoxLayout *stats = new QVBoxLayout();
+            //thisDisk->my_grid_layout->addLayout(stats,2,3);
+        }
+        qreal w = thisDisk->my_view[0]->width();
+        qreal h = thisDisk->my_view[0]->height();
         qInfo() << "disk:" << i << "view heigth:width" << h << w;
         qreal bar_width = w / (thisDisk->num_queues + 2);
         int bar_margin = 3;
@@ -239,35 +272,20 @@ void MainWindow::setup_display()
         {
             QGraphicsRectItem * r = new QGraphicsRectItem(i*bar_width + bar_margin,0,bar_width,h);
             r->setBrush(QBrush(Qt::red));
-            qInfo() << "bar: X:" << i*bar_width << "width: " << bar_width << "heigth: " <<  h;
-            thisDisk->my_scene->addItem(r);
+            //qInfo() << "bar: X:" << i*bar_width << "width: " << bar_width << "heigth: " <<  h;
+            thisDisk->my_scene[0]->addItem(r);
             thisDisk->qBars.push_back(r);
         }
         thisDisk->lastQD = new std::vector<int>;
         for (int j = 0; j < thisDisk->num_queues; j++) {
             // init last qd to 0
             thisDisk->lastQD->insert(thisDisk->lastQD->end(),0);
-            // create a progress bar for each q
-            QProgressBar * pBar = new QProgressBar();
-            pBar->setMaximumHeight(10);
-            pBar->setTextVisible(false);
-            //pBar->setMaximumWidth(200);
-            thisDisk->pBars.insert(thisDisk->pBars.end(),pBar);
         }
-        thisDisk->hddLayout = new QHBoxLayout();
-        thisDisk->disk_frame = new QFrame();
-        thisDisk->disk_frame->setFrameStyle(QFrame::Box|QFrame::Raised);
-        thisDisk->disk_frame->setLineWidth(3);
-        thisDisk->disk_frame->setLayout(thisDisk->hddLayout);
-
-        QLabel * ndx = new QLabel();
-        ndx->setText(thisDisk->name);
-        ndx->setAlignment(Qt::AlignHCenter );
-        QVBoxLayout* icons = new QVBoxLayout();
-        QLabel * icon = new QLabel();
-        icon->setPixmap(*green_disk);
-        icons->addWidget(icon);
-        icons->addWidget(ndx);
+//        QVBoxLayout* icons = new QVBoxLayout();
+//        QLabel * icon = new QLabel();
+//        icon->setPixmap(*green_disk);
+//        icons->addWidget(icon);
+//        icons->addWidget(ndx);
         thisDisk->selector_checkbox = new QCheckBox();
         QLabel * cb_label;
         if (thisDisk->present)
@@ -281,54 +299,43 @@ void MainWindow::setup_display()
             cb_label = new QLabel("<s>enabled</s>");
             thisDisk->selector_checkbox->setEnabled(false);
         }
+
         QFormLayout *formlayout_TGT_int =  new QFormLayout();
-        //QLabel * cb_label = new QLabel("enabled");
+
         formlayout_TGT_int->addRow(cb_label,thisDisk->selector_checkbox);
-        icons->addLayout(formlayout_TGT_int);
-        thisDisk->hddLayout->addLayout(icons);
-        QVBoxLayout * queues = new QVBoxLayout();
-        thisDisk->hddLayout->addLayout(queues);
-        QLabel *ql = new QLabel("queues");
-        ql->setAlignment(Qt::AlignCenter);
-        queues->addWidget(ql);
-        QFont f( "Arial", 10);
-        int c = 0;
-        for (QProgressBar* qpb : thisDisk->pBars){
-            QHBoxLayout *h = new QHBoxLayout();
-            queues->addLayout(h);
-            QLabel * qn = new QLabel(QString::number(c));
-            qn->setFont(f);
-            h->addWidget(qn);
-            h->addWidget(qpb);
-            c++;
-        }
-        thisDisk->statsLayout = new QVBoxLayout();
-        thisDisk->bw_label = new QLabel("mbps");
-        thisDisk->iops_label = new QLabel("iops");
-        thisDisk->hddLayout->addLayout(thisDisk->statsLayout);
-        thisDisk->statsLayout->addWidget(new QLabel("KBPS"));
-        thisDisk->statsLayout->addWidget(thisDisk->bw_label);
-        thisDisk->statsLayout->addWidget(new QLabel("IOPS"));
-        thisDisk->statsLayout->addWidget(thisDisk->iops_label);
+        thisDisk->my_grid_layout->addLayout(formlayout_TGT_int,0,0);
+//        icons->addLayout(formlayout_TGT_int);
+//        thisDisk->hddLayout->addLayout(icons);
+//        QVBoxLayout * queues = new QVBoxLayout();
+//        thisDisk->hddLayout->addLayout(queues);
+//        QLabel *ql = new QLabel("queues");
+//        ql->setAlignment(Qt::AlignCenter);
+//        queues->addWidget(ql);
+//        QFont f( "Arial", 10);
+//        int c = 0;
+//        for (QProgressBar* qpb : thisDisk->pBars){
+//            QHBoxLayout *h = new QHBoxLayout();
+//            queues->addLayout(h);
+//            QLabel * qn = new QLabel(QString::number(c));
+//            qn->setFont(f);
+//            h->addWidget(qn);
+//            h->addWidget(qpb);
+//            c++;
+//        }
+//        thisDisk->statsLayout = new QVBoxLayout();
+//        thisDisk->bw_label = new QLabel("mbps");
+//        thisDisk->iops_label = new QLabel("iops");
+//        thisDisk->hddLayout->addLayout(thisDisk->statsLayout);
+//        thisDisk->statsLayout->addWidget(new QLabel("KBPS"));
+//        thisDisk->statsLayout->addWidget(thisDisk->bw_label);
+//        thisDisk->statsLayout->addWidget(new QLabel("IOPS"));
+//        thisDisk->statsLayout->addWidget(thisDisk->iops_label);
         qInfo() << "tracking disk " << thisDisk->name;
-        disks.insert(disks.end(),thisDisk);
+        //disks.insert(disks.end(),thisDisk);
+        my_disks[thisDisk->name] = thisDisk;
     }
     qInfo() << disks;
 
-    qInfo() << "scanning for NVMe disks";
-    for (HDD *h : disks) {
-        qInfo() << "adding disk " << h->name << "to layout";
-//        for (int qd = 200; qd > 0; qd-=10)
-//        {
-//            qInfo() << qd;
-//            for (int i = 0; i < num_cpus+1; i++)
-//            {
-//                dummyqd[i] = qd;
-//            }
-//            update_qgraph(h,dummyqd);
-//            QThread::msleep(10);
-//        }
-    }
     ui->plainTextEdit->setStyleSheet("QPlainTextEdit {background-color: black; color: red;}");
     ui->action_Start->setEnabled(false);
     ui->StopWork->setEnabled(false);
@@ -349,7 +356,7 @@ void MainWindow::exercise_qd_display()
                 dummyqd[i] = qd;
             }
             update_qgraph(h,dummyqd);
-            QThread::msleep(10);
+            QThread::msleep(1);
         }
     }
 }
@@ -368,94 +375,82 @@ void MainWindow::on_action_Init_triggered()
     ui->statusbar->showMessage("initializing...");
 }
 
-void MainWindow::handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,int> bw_map )
+void MainWindow::handleUpdateIOPS(const DeviceCounters iops_map, const DeviceCounters bw_map )
 {
-    read_chassis_serialport();
-    if (!update_ok)
+    if ((!update_ok) || (done))
     {
         qInfo() << "received IOPS update with display update disabled";
-        for(auto e : disks)
-        {
-          e->bw_label->setNum(0);
-          e->iops_label->setNum(0);
-        }
         return;
     }
     qInfo() << "main thread received IOPs/ BW data" << iops_map << bw_map;
 
-    QMapIterator<int,int> i(iops_map);
-    while (i.hasNext())
+    for (QString d :iops_map.keys())
     {
-        i.next();
-        disks[i.key()]->iops_label->setNum(i.value());
+        int iops = 0;
+        for (int ns :iops_map[d].keys())
+        {
+            iops += iops_map[d][ns];
+        }
+        my_disks[d]->iops_label->setNum(iops);
     }
-    QMapIterator<int,int> j(bw_map);
-    while (j.hasNext())
+
+    for (QString d :bw_map.keys())
     {
-        j.next();
-        disks[j.key()]->bw_label->setNum(j.value());
+        int iops = 0;
+        for (int ns :bw_map[d].keys())
+        {
+            iops += bw_map[d][ns];
+        }
+        my_disks[d]->bw_label->setNum(iops);
     }
 }
 
-
-void MainWindow::update_qgraph(HDD* disk, QMap<int,int> qds)
+void MainWindow::update_qgraph(HDD* disk, const QMap<int,int> qds)
 {
-    qInfo() << "update_qgraph received:" << disk->ndx << disk->name << qds;
-    //QMap<int,int>::const_iterator i;
-    //i = qds.constBegin();
-    for (int i = 0; i < disk->num_queues; i++)
+    qInfo() << "update_qgraph received: " << disk->name << qds;
+    if (disk->my_slot == nullptr)
     {
-//        if (i.key() >= disk->num_queues)
-//        {
-//            QString msg = QString("Error: got qd for queue %1 but only %2 queues!").arg(i.key()).arg(disk->num_queues) ;
-//            qInfo() << msg << qds;
-//            return;
-//        }
-//        else
-//        {
-//            qInfo() << "qd update" << i.key() << i.value() << "queues avail:" << disk->qBars.size() << qds ;
-//            QRectF r = disk->qBars[i.key()]->rect();
-//            r.setBottom(0);
-//            r.setTop(qd_chart_maxY * (1-qds[i.value()]/full_scale_qd));
-//            disk->qBars[i.key()]->setRect(r);
-//        }
+        qInfo() << "skipping graph update for missing disk";
+        return;
+    }
+
+    QList<int> keys = qds.keys();
+    for (int i = 0; i < num_cpus+1; i++)
+    {
         QRectF r = disk->qBars[i]->rect();
-        r.setTop(qd_chart_maxY * (1-qds[i]/full_scale_qd));
-        disk->qBars[i]->setRect(r);
-        qInfo() << "qd update" << i << qds[i] << "queues avail:" << disk->qBars.size() << "top:" << r.top() << "bottom:" << r.bottom();
+        if (keys.contains(i))
+        {
+            if (qds[i] > full_scale_qd) r.setTop(0);
+            else r.setTop(qd_chart_maxY * (1-qds[i]/full_scale_qd));
+            disk->qBars[i]->setRect(r);
+        }
+        else
+        {
+            r.setTop(qd_chart_maxY);
+            disk->qBars[i]->setRect(r);
+        }
     }
 }
 
-void MainWindow::handleResults(const QMap<int, QMap<int,int>> result)
+void MainWindow::handleResults(const Queues results)
 {
     if (!update_ok)
     {
         qInfo() << "received QD update with display update disabled";
         for(auto e : disks)
         {
-          for (auto p : e->pBars)
-          {
-              p->setValue(0);
-          }
+          //TODO clear the q bars
         }
         return;
     }
-    QMapIterator<int, QMap<int,int>> disk(result);
-    while (disk.hasNext())
+    qInfo() << "handleResults" << results;
+    QStringList disks = results.keys();
+    qInfo() << "disks: " << disks;
+    const QStringList &localDisks = disks;
+    for (QString d : localDisks)
     {
-     disk.next();
-     update_qgraph(disks[disk.key()],disk.value());
-     qInfo() << "QD data sent:" << disk.value() ;
-//     QMapIterator<int,int> q(disk.value());
-//     while (q.hasNext())
-//     {
-//        q.next();
-
-//        if (q.key() < disks[disk.key()]->pBars.size())
-//        {
-//            disks[disk.key()]->pBars[q.key()]->setValue(q.value());
-//        }
-//     }
+     update_qgraph(my_disks[d],results[d][1]);
+     qInfo() << "QD data recd:" << results[d][1] ;
     }
 }
 
@@ -469,6 +464,7 @@ void MainWindow::start_system()
     if (running) return;
     running = true;
     thread_needs_killed = true;
+    done=false;
     qInfo() << "menu start";
     ui->statusbar->showMessage("Starting...",2500);
     //timer = startTimer(1000);
@@ -497,7 +493,7 @@ void MainWindow::start_system()
     connect(this, SIGNAL(reset_nvmeworker()), worker, SLOT(reset()));
     connect(worker, &nvmeworker::resultReady, this, &MainWindow::handleResults);
     connect(worker, &nvmeworker::update_iops, this, &MainWindow::handleUpdateIOPS);
-    connect(worker, &nvmeworker::update_chassis, this, &MainWindow::handleUpdateChassisPort);
+
     workerThread->start();
     ui->statusbar->showMessage("Thread started",1000);
     ui->SetWork->setEnabled(true);
@@ -508,6 +504,7 @@ void MainWindow::on_actionS_top_triggered()
 {
     if (!running) return;
     running = false;
+    done=true;
     ui->action_Start->setEnabled(true);
     ui->actionS_top->setEnabled(false);
     qInfo() << "menu stop";
@@ -520,6 +517,7 @@ void MainWindow::on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus)
     qInfo() << "recieved fio exit signal" << exitCode << exitStatus;
     ui->statusbar->showMessage("fio stopped");
     qInfo() << "fio stopped";
+    done=true;
 }
 
 void MainWindow::on_fio_stdout()
@@ -531,14 +529,15 @@ void MainWindow::on_fio_stdout()
 QStringList MainWindow::get_fio_targets()
 {
     QStringList targets;
-    for (auto d : disks)
-    {
-        if (d->selector_checkbox->checkState() == Qt::Checked)
+    QMap<QString,HDD*>::const_iterator it;
+    qInfo() << "my_disks" << my_disks;
+    for (it = my_disks.cbegin(); it !=my_disks.constEnd(); it++)
+        if (it.value()->present)
         {
-            targets.append(d->name);
-            qInfo() << (QString("added %1").arg(d->name));
+        qInfo() << "fio adding " << it.value()->name;
+        targets.append(it.value()->namespaces[1].name);
+        if (it.value()->namespaces[2].present) targets.append(it.value()->namespaces[2].name);
         }
-    }
     qInfo() << "fio targets:" << targets;
     qInfo() << "done get_fio_targets()" ;
     return targets;
@@ -573,12 +572,14 @@ int MainWindow::start_fio()
     QString qd = QString("--iodepth=%1").arg(ui->spinBoxQD->value());
     fioJobParameters.append(qd);
     int disk_test_cnt = 0;
-    for (HDD *h : disks)
+    QMap<QString,HDD*>::ConstIterator h;
+    for (h = my_disks.cbegin(); h != my_disks.constEnd(); h++)
     {
-        if ((h->present) && (h->selector_checkbox->isChecked() == true))
+        for (int i = 1; i < 2; i++)
+            if ((h.value()->namespaces[i].present) && (h.value()->selector_checkbox->isChecked()==true ))
         {
-            fioParameters.append(QString("--name=%1").arg(h->ndx));
-            fioParameters.append(QString("--filename=/dev/%1").arg(h->name));
+            fioParameters.append(QString("--name=%1").arg(h.value()->namespaces[i].name));
+            fioParameters.append(QString("--filename=%1").arg(h.value()->namespaces[i].name));
             fioParameters.append(fioJobParameters);
             disk_test_cnt++;
         }
@@ -639,7 +640,7 @@ void MainWindow::on_StopWork_clicked()
     }
     ui->SetWork->setEnabled(true);
     ui->StopWork->setEnabled(false);
-    reset_nvmeworker();
+    emit reset_nvmeworker();
     update_ok = false;
     qInfo() << "done on_StopWork_clicked()";
 }
@@ -648,17 +649,6 @@ void MainWindow::setup_chassis_serialport()
 {
     //depreciated
     qInfo() << "called depreciated function setup_chassis_serialport()";
-}
-
-void MainWindow::read_chassis_serialport()
-{
-    //depreciated
-    qInfo() << "called depreciated function setup_chassis_serialport()";
-}
-
-void MainWindow::handleUpdateChassisPort()
-{
-    read_chassis_serialport();
 }
 
 void MainWindow::on_action_Serial_Setup_triggered()

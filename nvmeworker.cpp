@@ -17,6 +17,7 @@ nvmeworker::~nvmeworker()
 
 void nvmeworker::reduce_queue()
 {
+    /*
     QMapIterator<int, QMap<int,int>> disk(queues);
     while (disk.hasNext())
     {
@@ -33,12 +34,13 @@ void nvmeworker::reduce_queue()
         }
      }
     }
+    */
 }
 
 void nvmeworker::timerEvent(QTimerEvent *event)
 {
-    qInfo() << "timer fired in NVMeworker";
-    emit update_chassis();
+    //qInfo() << "timer fired in NVMeworker";
+    if (done) return;
     if (event->timerId() == queue_timer)
     {
         qInfo() << "nvmeworker QTimerEvent fired for queues" << queues ;
@@ -56,7 +58,17 @@ void nvmeworker::timerEvent(QTimerEvent *event)
     double interval = (now - last_time) /1000.0;
     last_time = now;
     QMap<int, int>::iterator i;
-    QMap<int,int>iops_results;
+
+    DeviceCounters iops_results;
+    QStringList drives = io_counts.keys();
+    for (QString drive : drives)
+    {
+        iops_results[drive][1] = io_counts[drive][1]/interval;
+        iops_results[drive][1] = io_counts[drive][1]/interval;
+    }
+
+    DeviceCounters bw_results;
+ /*
     for (i = io_counts.begin(); i != io_counts.end(); ++i)
     {
         iops_results[i.key()] = (int)(i.value() / interval);
@@ -68,8 +80,10 @@ void nvmeworker::timerEvent(QTimerEvent *event)
         bw_results[i.key()] = (int)(i.value() / interval) * sect_size_KB;
         i.value() = 0;
     }
+    */
     emit update_iops(iops_results, bw_results);
     qInfo() << "nvmeworker QTimerEvent fired. iops:" << iops_results << " bw:" << bw_results;
+
 }
 
 void nvmeworker::doWork()
@@ -130,45 +144,77 @@ int nvmeworker::get_value(QStringList fields, QString selector)
     return results[0].split("=")[1].toInt();
 }
 
+void nvmeworker::get_value(QStringList fields, QString selector, QString*value)
+{
+    QStringList results = fields.filter(selector);
+    if (results.size() == 0)
+    {
+        qInfo() << "selector not found:" << selector << fields;
+        return ;
+    }
+    if (debug) logstream << "get_value " << selector << results[0] << "\n";
+    if (debug) logstream.flush();
+    value = &results[0];
+}
+
 void nvmeworker::process_setup(QString * line)
 {
     active = true;
-    fields = line->split(":");
-    int diskNo = fields[2].simplified().replace(QRegularExpression("[^0-9]"), "").toInt();
-    //qInfo() << fields[2] << fields[2].simplified().replace(QRegularExpression("[a-z]"), "") << diskNo;
     fields = line->replace(":",",").split(",");
+    QString dev_name = fields[2].simplified();
+    if (!dev_name.contains("nvme") || dev_name.contains("_"))
+    {
+        qInfo() << "setup" << dev_name << fields;
+        dev_name = fields[3].simplified();
+    }
+    //get_value(fields,"disk",&nsname);
+    int nsid = get_value(fields,"nsid");
     int qid = get_value(fields,"qid");
     int cid = get_value(fields,"cmdid");
     int len = 1 + get_value(fields,"len");
-    io_sectors[diskNo] = io_sectors[diskNo] + len;
+    io_sectors[dev_name][nsid] = io_sectors[dev_name][nsid] + len;
     //qInfo() << "len:" << len;
-    queues[diskNo][qid] = queues[diskNo][qid] + 1;
-    if (debug) logstream << "setup    disk:" << diskNo << " q:" << qid << " cmd:" << cid << " " << queues[diskNo][qid] << " " << *line <<"\n";
+    queues[dev_name][nsid][qid] = queues[dev_name][nsid][qid] + 1;
+    if (debug) logstream << "setup    disk:" << dev_name << " namespace:" << nsid << " q:" << qid << " cmd:" << cid << " " << queues[dev_name][nsid][qid] << " " << *line  <<"\n";
+    //if (debug) qInfo() << dev_name << "fields: " << fields;
 }
 
 void nvmeworker::process_complete(QString * line)
 {
-    fields = line->split(":");
-    int diskNo = fields[2].simplified().replace(QRegularExpression("[^0-9]"), "").toInt();
+    if (done) return;
     fields = line->replace(":",",").split(",");
+    QString dev_name = fields[2].simplified();
+    if (!dev_name.contains("nvme") || dev_name.contains("_"))
+    {
+        qInfo() << "complete" << dev_name << fields;
+        dev_name = fields[3].simplified();
+    }
+    //qInfo()  <<  dev_name << fields;
     int qid = get_value(fields,"qid");
     int cid = get_value(fields,"cmdid");
-    queues[diskNo][qid] = queues[diskNo][qid] - 1;
-    io_counts[diskNo] += 1;
-    if (queues[diskNo][qid] < 0) queues[diskNo][qid] = 0;
-    if (queues[diskNo][qid] > 1000) queues[diskNo][qid] = 1;  //this is a shameless hack
-    if (debug) logstream << "complete disk:" << diskNo << " q:" << qid << " cmd:" << cid << " " << queues[diskNo][qid] << " " << *line << "\n";
+    //int nsid = get_value(fields,"nsid");
+    int nsid = 1;
+    //get_value(fields,"disk",&dev_name);
+    queues[dev_name][nsid][qid] = queues[dev_name][nsid][qid] - 1;
+    io_counts[dev_name][nsid] += 1;
+    if (queues[dev_name][nsid][qid] < 0) queues[dev_name][nsid][qid] = 0;
+    if (queues[dev_name][nsid][qid] > 1000) queues[dev_name][nsid][qid] = 1;  //this is a shameless hack to fix an error I don't understand
+    if (debug) logstream << "complete disk:" << dev_name << " namespace:" << nsid << " q:" << qid << " cmd:" << cid << " " << queues[dev_name][nsid][qid] << " " << *line << "\n";
+    //if (debug) qInfo() << "fields: " << fields;
 }
 
 void nvmeworker::finish()
 {
     done = true;
     qInfo() << "nvmeworker wants to finish";
+
+
 }
 
 int nvmeworker::start_tracing()
 {
     int stat = 0;
+    done=false;
     QProcess process_system;
     QStringList linuxcpuname = {"-c"," echo 1 > /sys/kernel/debug/tracing/events/nvme/enable" };
     qInfo() << "worker: " << linuxcpuname;
@@ -189,6 +235,7 @@ int nvmeworker::start_tracing()
 int nvmeworker::stop_tracing()
 {
     int stat = 0;
+    done=true;
     QProcess process_system;
     QStringList linuxcpuname = {"-c"," echo 0 > /sys/kernel/debug/tracing/events/nvme/enable" };
     qInfo() << "worker: " << linuxcpuname;

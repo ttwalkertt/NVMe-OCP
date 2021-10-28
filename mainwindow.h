@@ -43,9 +43,8 @@ private slots:
     void on_action_Init_triggered();
     void on_action_Start_triggered();
     void on_actionS_top_triggered();
-    void handleResults(const QMap<int, QMap<int,int>> result);
-    void handleUpdateIOPS(const QMap<int,int> iops_map, const QMap<int,int> bw_map);
-    void handleUpdateChassisPort();
+    void handleResults(const Queues);
+    void handleUpdateIOPS(const DeviceCounters iops_map, const DeviceCounters bw_map);
     void errorString(QString err);
     void on_SetWork_clicked();
     void on_fio_exit(int exitCode, QProcess::ExitStatus exitStatus);
@@ -64,6 +63,7 @@ protected:
 
 private:
     Ui::MainWindow *ui;
+    bool done;
     // 2U12 support
     int num_disks = 12;
 
@@ -73,39 +73,58 @@ private:
     //INI file support
     QString iniFileName = "OCP_settings.ini";
     void load_INI_settings();
-    std::map<int,QString> INI_my_slots;
+    int num_chassis_slots = 12;
+    std::map<int,QString> INI_slot_to_drive_map;
+    QMap<QString,int> drive_to_slot_map;
 
     // QD chart sizing
     qreal qd_chart_maxY = 200;  // height of the qd chart bars in pixels. update this when building the UI
     qreal full_scale_qd = 100;  // full scale queue depth - will cap the display here
+
+    struct NS {
+        QString name;
+        bool present;
+    };
+
     // one of these for each disk
     struct HDD {
         bool present;
         int ndx;
+        bool is_DA;
+        struct NS namespaces[3];
         int num_queues;
         int bw;
         int iops;
+        int slot_no;
         QString name;
-        std::vector<QProgressBar*> pBars;
+        QString full_name;
         std::vector<QGraphicsRectItem *> qBars;
         std::vector<int> * lastQD;
-        QHBoxLayout *hddLayout;
+        //QHBoxLayout *hddLayout;
         QVBoxLayout *statsLayout;
         QLabel *iops_label;
         QLabel *bw_label;
-        QFrame *disk_frame;
         QCheckBox * selector_checkbox;
-        QGroupBox * my_group;
-        QGraphicsScene * my_scene;
-        QGraphicsView * my_view;
+        QGroupBox * my_slot;
+        QGridLayout * my_grid_layout;
+        QGraphicsScene * my_scene[2];
+        QGraphicsView * my_view[2];
     };
     std::vector<QGroupBox*> my_slots;
     std::vector<HDD*> disks;
+    QMap<QString,HDD*> my_disks;
     std::vector<QCheckBox*> cpu_boxes;
     std::vector<int> active_cpus;
     QStringList disks_present;
     QPlainTextEdit* mainTextWindow;
     QFormLayout *formlayout_CPU;
+
+    struct Chassis_slot{
+        int ndx;
+        struct HDD* disk;
+    };
+    std::vector<Chassis_slot> my_chassis_slots;
+
     bool running;
     bool update_ok = false;
     int timer;
@@ -128,7 +147,7 @@ private:
     QStringList get_fio_targets();
     void setup_chassis_serialport();
     void read_chassis_serialport();
-    void update_qgraph(HDD*, QMap<int,int> qds);
+    void update_qgraph(HDD*, const QMap<int,int> qds);
     void exercise_qd_display();
 
 };
