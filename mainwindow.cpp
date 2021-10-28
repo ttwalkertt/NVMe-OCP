@@ -70,18 +70,29 @@ void MainWindow::load_INI_settings()
                 drive_to_slot_map[i]=settings->value(i).toInt();
             }
         qInfo() << drive_to_slot_map;
-    } else
-    {
-        QString errmsg = QString("ERROR unable to open %1").arg(iniFileName);
-        QMessageBox msgBox;
-        msgBox.setText(errmsg);
-        msgBox.exec();
-        QApplication::quit();
-    }
-    qInfo() << "listing drives->slots";
-    QMap<QString, int>::iterator it;
-    for (it = drive_to_slot_map.begin(); it != drive_to_slot_map.end(); it++)
-        qInfo() << it.key() << it.value();
+        settings->endGroup();
+        settings->beginGroup("ui");
+        qd_chart_maxY = settings->value("qd_chart_maxY").toReal();
+        full_scale_qd = settings->value("full_scale_qd").toReal();
+        drive_top_row_heigth = settings->value("drive_top_row_heigth").toInt();
+        drive_graphics_view_heigth = settings->value("drive_group_box_heigth").toInt();
+        grid_margin = settings->value("grid_margin").toInt();
+        grid_row_0_min_h = settings->value("grid_row_0_min_h").toInt();
+        drive_graphics_view_width = settings->value("drive_graphics_view_width").toInt();
+
+        } else
+        {
+            QString errmsg = QString("ERROR unable to open %1").arg(iniFileName);
+            QMessageBox msgBox;
+            msgBox.setText(errmsg);
+            msgBox.exec();
+            QApplication::quit();
+        }
+        qInfo() << "listing drives->slots";
+        QMap<QString, int>::iterator it;
+        for (it = drive_to_slot_map.begin(); it != drive_to_slot_map.end(); it++)
+            qInfo() << it.key() << it.value();
+
 
 }
 
@@ -201,6 +212,7 @@ void MainWindow::setup_display()
             thisDisk->my_view[0] = ui->graphicsView_06u;
             thisDisk->my_view[1] = ui->graphicsView_06l;
             thisDisk->my_grid_layout = ui->gridLayout_d06;
+            thisDisk->is_DA = true;
             break;
         case 7:
             thisDisk->my_slot = ui->groupBox_d7;
@@ -217,6 +229,7 @@ void MainWindow::setup_display()
             thisDisk->my_view[0] = ui->graphicsView_09u;
             thisDisk->my_view[1] = ui->graphicsView_09l;
             thisDisk->my_grid_layout = ui->gridLayout_d09;
+            thisDisk->is_DA = true;
             break;
         case 10:
             thisDisk->my_slot = ui->groupBox_d10;
@@ -233,19 +246,53 @@ void MainWindow::setup_display()
             thisDisk->my_view[0] = ui->graphicsView_12u;
             thisDisk->my_view[1] = ui->graphicsView_12l;
             thisDisk->my_grid_layout = ui->gridLayout_d12;
+            thisDisk->is_DA = true;
             break;
         default:
             qInfo() << "Error in disk - UI mapping!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
             break;
         }
 
-        thisDisk->my_view[0]->setMinimumHeight(qd_chart_maxY);
+        for (int i=1;i<2;i++)
+        {
+            thisDisk->my_view[i]=new QGraphicsView();
+            thisDisk->my_view[i]->setFixedHeight(drive_graphics_view_heigth);
+            thisDisk->my_view[i]->setFixedWidth(drive_graphics_view_width);
+            if ((i > 1) && (thisDisk->is_DA)) thisDisk->my_grid_layout->addWidget(thisDisk->my_view[i],i,1);
+        }
+        thisDisk->my_view[0]->setMinimumHeight(drive_graphics_view_heigth);
+        if (thisDisk->my_view[1])
+        {
+            thisDisk->my_view[1]->setMinimumHeight(drive_graphics_view_heigth);
+        }
         thisDisk->my_view[0]->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
         thisDisk->my_scene[0] = new QGraphicsScene();
         thisDisk->my_view[0]->setScene(thisDisk->my_scene[0]);
         thisDisk->my_slot->setTitle(thisDisk->name);
+        qInfo() << "grid layout children" << thisDisk->my_grid_layout->children();
+        qInfo() << "drive group box children" << thisDisk->my_slot->children();
+        for (auto c : thisDisk->my_slot->children())
+        {
+            if (c->isWidgetType())
+            {
+                qInfo() << "obj name: " << c->objectName() ;
+                if (QString("QLabel") == c->metaObject()->className())
+                {
+                   QLabel *label = thisDisk->my_slot->findChild<QLabel*>(c->objectName());
+                   label->setMaximumHeight(drive_top_row_heigth);
+                   label->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Fixed);
+                }
+
+            }
+        }
+
         thisDisk->ndx = i;
         thisDisk->num_queues = num_cpus + 1;
+        thisDisk->my_grid_layout->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+        thisDisk->my_grid_layout->setMargin(grid_margin);
+        thisDisk->my_grid_layout->setSpacing(5);
+        thisDisk->my_grid_layout->setRowMinimumHeight(0,grid_row_0_min_h);
+
         QVBoxLayout *stats = new QVBoxLayout();
         thisDisk->bw_label = new QLabel("mbps");
         thisDisk->iops_label = new QLabel("iops");

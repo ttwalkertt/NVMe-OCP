@@ -78,8 +78,15 @@ private:
     QMap<QString,int> drive_to_slot_map;
 
     // QD chart sizing
+    // these are defaults and will be loaded from the INI
     qreal qd_chart_maxY = 200;  // height of the qd chart bars in pixels. update this when building the UI
-    qreal full_scale_qd = 100;  // full scale queue depth - will cap the display here
+    qreal full_scale_qd = 100;  // full scale queue depth - will cap the display here -
+    int drive_top_row_heigth = 10;  //heigth of the top row. overriden by INI
+    int drive_graphics_view_heigth = 450; //ibid
+    int drive_graphics_view_width = 500;
+    int grid_margin = 15;
+    int grid_row_0_min_h = 40;
+
 
     struct NS {
         QString name;
