@@ -53,6 +53,9 @@ private slots:
     void on_action_Serial_Setup_triggered();
     void on_pushButton_clicked();
 
+
+
+
 signals:
     void operate(const QString &);
     void finish_thread();
@@ -82,12 +85,13 @@ private:
     qreal qd_chart_maxY = 200;  // height of the qd chart bars in pixels. update this when building the UI
     qreal full_scale_qd = 100;  // full scale queue depth - will cap the display here -
     int drive_top_row_heigth = 10;  //heigth of the top row. overriden by INI
-    int drive_graphics_view_heigth = 450; //ibid
+    int drive_graphics_view_heigth = 200; //ibid
     int drive_graphics_view_width = 500;
     int drive_group_box_heigth; // in INI
     int drive_group_box_width = 600; // in INI
     int grid_margin = 15;
     int grid_row_0_min_h = 40;
+    int DAdrive_group_box_heigth = 0; // in INI
 
 
     struct NS {
@@ -118,6 +122,7 @@ private:
         QGridLayout * my_grid_layout;
         QGraphicsScene * my_scene[2];
         QGraphicsView * my_view[2];
+        QVBoxLayout * left_col_layout;
     };
     std::vector<QGroupBox*> my_slots;
     std::vector<HDD*> disks;
@@ -154,10 +159,12 @@ private:
     int start_fio();
     void start_system();
     QStringList get_fio_targets();
+    QString get_fio_CPUs();
     void setup_chassis_serialport();
     void read_chassis_serialport();
     void update_qgraph(HDD*, const QMap<int,int> qds);
     void exercise_qd_display();
+    QPushButton * pushbutton_resetCPU;
 
 };
 #endif // MAINWINDOW_H

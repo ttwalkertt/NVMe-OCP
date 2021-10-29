@@ -61,10 +61,12 @@ void nvmeworker::timerEvent(QTimerEvent *event)
 
     DeviceCounters iops_results;
     QStringList drives = io_counts.keys();
-    for (QString drive : drives)
+    for (const QString drive : drives)
     {
         iops_results[drive][1] = io_counts[drive][1]/interval;
-        iops_results[drive][1] = io_counts[drive][1]/interval;
+        iops_results[drive][2] = io_counts[drive][2]/interval;
+        io_counts[drive][1] = 0;
+        io_counts[drive][2] = 0;
     }
 
     DeviceCounters bw_results;
