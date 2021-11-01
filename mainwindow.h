@@ -92,6 +92,7 @@ private:
     int grid_margin = 15;
     int grid_row_0_min_h = 40;
     int DAdrive_group_box_heigth = 0; // in INI
+    int plain_text_edit_heigth = 40;
 
 
     struct NS {

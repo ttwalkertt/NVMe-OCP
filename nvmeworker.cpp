@@ -70,19 +70,16 @@ void nvmeworker::timerEvent(QTimerEvent *event)
     }
 
     DeviceCounters bw_results;
- /*
-    for (i = io_counts.begin(); i != io_counts.end(); ++i)
+    drives = io_sectors.keys();
+    for (const QString drive : drives)
     {
-        iops_results[i.key()] = (int)(i.value() / interval);
-        i.value() = 0;
+        bw_results[drive][1] = io_sectors[drive][1]/interval;
+        bw_results[drive][2] = io_sectors[drive][2]/interval;
+        io_sectors[drive][1] = 0;
+        io_sectors[drive][2] = 0;
     }
-    QMap<int,int>bw_results;
-    for (i = io_sectors.begin(); i != io_sectors.end(); ++i)
-    {
-        bw_results[i.key()] = (int)(i.value() / interval) * sect_size_KB;
-        i.value() = 0;
-    }
-    */
+
+
     emit update_iops(iops_results, bw_results);
     qInfo() << "nvmeworker QTimerEvent fired. iops:" << iops_results << " bw:" << bw_results;
 

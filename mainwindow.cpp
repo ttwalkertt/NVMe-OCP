@@ -81,6 +81,7 @@ void MainWindow::load_INI_settings()
         drive_graphics_view_width = settings->value("drive_graphics_view_width").toInt();
         DAdrive_group_box_heigth = settings->value("DAdrive_group_box_heigth").toInt();
         drive_graphics_view_heigth = settings->value("drive_graphics_view_heigth").toInt();
+        plain_text_edit_heigth = settings->value("plain_text_edit_heigth").toInt();
         } else
         {
             QString errmsg = QString("ERROR unable to open %1").arg(iniFileName);
@@ -129,8 +130,7 @@ int MainWindow::setup_CPU_selector()
             QVBoxLayout *bl = new QVBoxLayout();
             ui->groupBox_CPU->setLayout(bl);
             formlayout_CPU =  new QFormLayout();
-            pushbutton_resetCPU = new QPushButton();
-            bl->addWidget(pushbutton_resetCPU);
+
             bl->addLayout(formlayout_CPU);
             for (constIterator = cpus.constBegin(); constIterator != cpus.constEnd(); ++constIterator)
             {
@@ -315,7 +315,7 @@ void MainWindow::setup_display()
         QVBoxLayout *stats = new QVBoxLayout();
         thisDisk->bw_label = new QLabel("mbps");
         thisDisk->iops_label = new QLabel("iops");
-        QLabel *bw = new QLabel("BW");
+        QLabel *bw = new QLabel("BW kBps");
         QLabel *iops = new QLabel("IOPS");
         stats->addWidget(bw);
         stats->addWidget(thisDisk->bw_label);
@@ -365,6 +365,7 @@ void MainWindow::setup_display()
     qInfo() << disks;
 
     ui->plainTextEdit->setStyleSheet("QPlainTextEdit {background-color: black; color: red;}");
+    ui->plainTextEdit->setMaximumHeight(plain_text_edit_heigth);
     ui->action_Start->setEnabled(false);
     ui->StopWork->setEnabled(false);
     qInfo() << "done setup_display()";
@@ -424,12 +425,13 @@ void MainWindow::handleUpdateIOPS(const DeviceCounters iops_map, const DeviceCou
 
     for (QString d :bw_map.keys())
     {
-        int iops = 0;
+        int bw = 0;
         for (int ns :bw_map[d].keys())
         {
-            iops += bw_map[d][ns];
+            bw += bw_map[d][ns];
         }
-        my_disks[d]->bw_label->setNum(iops);
+        int bwkbps = bw * 4096 / 1024;
+        my_disks[d]->bw_label->setNum(bw);
     }
 }
 
