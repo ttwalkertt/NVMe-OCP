@@ -2,4 +2,14 @@
     <qresource prefix="/new/mainimages">
         <file>hdd-green.png</file>
     </qresource>
+    <qresource prefix="/">
+        <file>brcm.png</file>
+        <file>microchip.png</file>
+        <file>oss.png</file>
+        <file>ocp.png</file>
+        <file>seagate_PMS_horizontal_pos.png</file>
+        <file>seagate_1c_blk_horizontal.png</file>
+        <file>seagate_1c_blk_stacked.png</file>
+        <file>seagate_PMS_horizontal_pos.small.png</file>
+    </qresource>
 </RCC>
