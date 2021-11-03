@@ -26,12 +26,13 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     on_StopWork_clicked();
-//    if (thread_needs_killed)
-//    {
-//        workerThread->quit();
-//        ui->statusbar->showMessage("shutting down...");
-//        workerThread->wait(5);
-//    }
+    if (thread_needs_killed)
+    {
+        qInfo() << "manually killing the worker thread";
+        workerThread->quit();
+        ui->statusbar->showMessage("shutting down...");
+        workerThread->wait(5);
+    }
     delete ui;
 }
 
@@ -64,7 +65,8 @@ void MainWindow::load_INI_settings()
         qInfo() << "reading drives section of ini";
         settings->beginGroup("drives");
         QStringList childKeys = settings->childKeys();
-        for ( const auto& i : childKeys  )
+        const QStringList cK = childKeys;
+        for ( const auto& i : cK  )
             {
                 qInfo() << i << settings->value(i).toString();
                 drive_to_slot_map[i]=settings->value(i).toInt();
@@ -164,8 +166,6 @@ QStringList MainWindow::find_disks()
 
 void MainWindow::setup_display()
 {
-
-    disks_present = find_disks();
     running = false;
     setup_CPU_selector();
     QPixmap *green_disk = new QPixmap(":/new/mainimages/hdd-green.png");
@@ -324,13 +324,13 @@ void MainWindow::setup_display()
         int r = 1; int c = 3;
         qInfo() << "adding stats at " << r << c;
         thisDisk->my_grid_layout->addLayout(stats,r,c);
-        if (thisDisk->slot_no == 3 )
-        {
-            QLabel *bw = new QLabel("BW");
-            QLabel *iops = new QLabel("IOPS");
-            QVBoxLayout *stats = new QVBoxLayout();
-            //thisDisk->my_grid_layout->addLayout(stats,2,3);
-        }
+//        if (thisDisk->slot_no == 3 )
+//        {
+//            QLabel *bw = new QLabel("BW");
+//            QLabel *iops = new QLabel("IOPS");
+//            QVBoxLayout *stats = new QVBoxLayout();
+//            //thisDisk->my_grid_layout->addLayout(stats,2,3);
+//        }
         qreal w = thisDisk->my_view[0]->width();
         qreal h = thisDisk->my_view[0]->height();
         qInfo() << "disk:" << i << "view heigth:width" << h << w;
@@ -394,6 +394,7 @@ void MainWindow::exercise_qd_display()
 void MainWindow::timerEvent(QTimerEvent *event)
 {
     ui->statusbar->showMessage("Timer...",400);
+    qInfo() << "timer event " << event;
 }
 
 void MainWindow::on_action_Init_triggered()

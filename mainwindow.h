@@ -130,7 +130,6 @@ private:
     QMap<QString,HDD*> my_disks;
     std::vector<QCheckBox*> cpu_boxes;
     std::vector<int> active_cpus;
-    QStringList disks_present;
     QPlainTextEdit* mainTextWindow;
     QFormLayout *formlayout_CPU;
 
