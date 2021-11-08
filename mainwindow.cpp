@@ -84,7 +84,19 @@ void MainWindow::load_INI_settings()
         DAdrive_group_box_heigth = settings->value("DAdrive_group_box_heigth").toInt();
         drive_graphics_view_heigth = settings->value("drive_graphics_view_heigth").toInt();
         plain_text_edit_heigth = settings->value("plain_text_edit_heigth").toInt();
-        } else
+        settings->endGroup();
+        settings->beginGroup("models");
+        childKeys = settings->childKeys();
+        const QStringList mK = childKeys;
+        for ( const QString& j : mK  )
+            {
+                qInfo() << j << settings->value(j).toString();
+                model_map[j] =settings->value(j).toString();
+            }
+        settings->endGroup();
+        qInfo() << "model map" << model_map;
+
+    } else
         {
             QString errmsg = QString("ERROR unable to open %1").arg(iniFileName);
             QMessageBox msgBox;
@@ -92,6 +104,7 @@ void MainWindow::load_INI_settings()
             msgBox.exec();
             QApplication::quit();
         }
+
         qInfo() << "listing drives->slots";
         QMap<QString, int>::iterator it;
         for (it = drive_to_slot_map.begin(); it != drive_to_slot_map.end(); it++)
@@ -311,7 +324,7 @@ void MainWindow::setup_display()
 //        thisDisk->left_col_layout->addWidget(cb_label);
 //        thisDisk->left_col_layout->addWidget(thisDisk->selector_checkbox,Qt::Alignment(Qt::AlignHCenter)|Qt::Alignment(Qt::AlignTop));
         thisDisk->my_grid_layout->addWidget(new QLabel("QUEUES"),0,1,Qt::Alignment(Qt::AlignHCenter));
-
+        thisDisk->my_grid_layout->addWidget(new QLabel(model_map[thisDisk->name]),2,1,Qt::Alignment(Qt::AlignHCenter));
         QVBoxLayout *stats = new QVBoxLayout();
         thisDisk->bw_label = new QLabel("mbps");
         thisDisk->iops_label = new QLabel("iops");
@@ -350,14 +363,6 @@ void MainWindow::setup_display()
             thisDisk->lastQD->insert(thisDisk->lastQD->end(),0);
         }
 
-//        thisDisk->statsLayout = new QVBoxLayout();
-//        thisDisk->bw_label = new QLabel("mbps");
-//        thisDisk->iops_label = new QLabel("iops");
-//        thisDisk->hddLayout->addLayout(thisDisk->statsLayout);
-//        thisDisk->statsLayout->addWidget(new QLabel("KBPS"));
-//        thisDisk->statsLayout->addWidget(thisDisk->bw_label);
-//        thisDisk->statsLayout->addWidget(new QLabel("IOPS"));
-//        thisDisk->statsLayout->addWidget(thisDisk->iops_label);
         qInfo() << "tracking disk " << thisDisk->name;
         //disks.insert(disks.end(),thisDisk);
         my_disks[thisDisk->name] = thisDisk;

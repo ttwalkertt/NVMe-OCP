@@ -466,6 +466,9 @@
         <property name="pixmap">
          <pixmap resource="pics.qrc">:/oss.png</pixmap>
         </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
        </widget>
       </item>
      </layout>

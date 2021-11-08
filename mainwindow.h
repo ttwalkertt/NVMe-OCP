@@ -79,6 +79,7 @@ private:
     int num_chassis_slots = 12;
     std::map<int,QString> INI_slot_to_drive_map;
     QMap<QString,int> drive_to_slot_map;
+    QMap<QString,QString> model_map;
 
     // QD chart sizing
     // these are defaults and will be loaded from the INI
@@ -112,6 +113,7 @@ private:
         int slot_no;
         QString name;
         QString full_name;
+        QString model;
         std::vector<QGraphicsRectItem *> qBars;
         std::vector<int> * lastQD;
         //QHBoxLayout *hddLayout;
