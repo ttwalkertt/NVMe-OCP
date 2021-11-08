@@ -416,6 +416,7 @@ void MainWindow::handleUpdateIOPS(const DeviceCounters iops_map, const DeviceCou
 
     for (QString d :iops_map.keys())
     {
+        if (d.contains("rq")) continue; // not sure why this is happening
         int iops = 0;
         for (int ns :iops_map[d].keys())
         {
@@ -480,6 +481,7 @@ void MainWindow::handleResults(const Queues results)
     const QStringList &localDisks = disks;
     for (QString d : localDisks)
     {
+     if (d.contains("rq")) continue;  // not sure why this is happening
      update_qgraph(my_disks[d],results[d][1]);
      qInfo() << "QD data recd:" << results[d][1] ;
     }
